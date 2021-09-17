@@ -446,7 +446,7 @@ def print_calculated_dmg(dmg_data, teams):
     print(table)
 
 
-def calculate_dmg(enemies, teams):
+def calculate_dmg(enemies, teams, cal_method=stats.Team.calc_dmg):
     """
     calculate the damages of each team being against different enemies
     """
@@ -454,7 +454,7 @@ def calculate_dmg(enemies, teams):
     for enemy in enemies:
         teams_dmg = {}
         for team in teams:
-            teams_dmg.update(team.calc_dmg(enemy))
+            teams_dmg.update(cal_method(team, enemy))
         dmg_data[enemy.name] = teams_dmg
     return dmg_data
 
@@ -463,7 +463,7 @@ def get_output(enemies, teams):
     """
     output the damages of each team being against different enemies
     """
-    dmg_data = calculate_dmg(enemies, teams)
+    dmg_data = calculate_dmg(enemies, teams, cal_method=stats.Team.calc_chars_dmg)
     wb = Workbook()
     ws = wb.active
     ExcelOperation.output_worksheet(ws, dmg_data)
