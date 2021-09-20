@@ -17,21 +17,28 @@ class InvalidModException(Exception):
 
 def main_loop(chars, enemies, teams):
     while True:
-        instruction = input("请输入操作指令（修改角色信息/修改敌人信息/修改技能循环/计算队伍输出/导出队伍输出/quit）：")
+        print("请输入操作指令（数字0-5）：")
+        print("   0. 退出")
+        print("   1. 修改角色信息")
+        print("   2. 修改敌人信息")
+        print("   3. 修改技能循环")
+        print("   4. 计算队伍输出")
+        print("   5. 导出队伍输出")
+        instruction = input("指令：")
         # print("test")
-        if instruction == "修改角色信息":
+        if instruction == "1":
             # print("test")
             modify_stats('char', chars)
-        elif instruction == '修改敌人信息':
+        elif instruction == '2':
             modify_stats('enemy', enemies)
-        elif instruction == '修改技能循环':
+        elif instruction == '3':
             modify_teams(teams, chars)
-        elif instruction == '计算队伍输出':
+        elif instruction == '4':
             dmg_data = calculate_dmg(enemies, teams)
             print_calculated_dmg(dmg_data, teams)
-        elif instruction == '导出队伍输出':
+        elif instruction == '5':
             get_output(enemies, teams)
-        elif instruction == 'quit':
+        elif instruction == 'quit' or instruction == '0':
             break
         else:
             print("无效的操作指令，请重新输入")
@@ -274,15 +281,18 @@ def modify_stats(mode, data, chars=None):
         global _CHARS_PARAMS
         params = _CHARS_PARAMS
         a = '角色'
+        num_choice = 4
     elif mode == 'enemy':
         global _ENEMY_PARAMS
         params = _ENEMY_PARAMS
         a = '敌人'
+        num_choice = 4
     elif mode == 'team':
         global _TEAM_PARAMS
         params = _TEAM_PARAMS
         buff_instruct = "添加buff/"
         a = '队伍'
+        num_choice = 5
     else:
         raise
 
@@ -290,16 +300,23 @@ def modify_stats(mode, data, chars=None):
         _print_table(a, params.keys(), data)
 
         print()
-        instruction = input(f"请输入操作指令（修改/增加/删除/{buff_instruct}保存/quit）：")
-        if instruction == "修改":
+        instruction = input(f"请输入操作指令（数字0-{num_choice}）：")
+        print(f"   0. 退出")
+        print(f"   1. 修改")
+        print(f"   2. 增加")
+        print(f"   3. 删除")
+        print(f"   4. 保存")
+        if mode == "team":
+            print(f"   5. 添加buff")
+        if instruction == "1":
             _change_value(mode, data, chars)
-        elif instruction == "增加":
+        elif instruction == "2":
             _add_new(mode, data, chars)
-        elif instruction == "删除":
+        elif instruction == "3":
             _delete(mode, data, chars)
-        elif instruction == "添加buff" and mode == "team":
+        elif instruction == "5" and mode == "team":
             _buff_team(data)
-        elif instruction == "保存":
+        elif instruction == "4":
             while True:
                 direc = input("请输入保存地址:")
                 try:

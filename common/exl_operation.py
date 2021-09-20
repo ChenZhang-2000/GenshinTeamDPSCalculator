@@ -115,6 +115,7 @@ def load_skills(chars, direc=r".\data\skills.xlsx"):
             info = [cell.value for cell in row]
             info[1] = chars[info[1]]
             skill = stats.Skill(*info)
+            # print(skill.name)
             skills.append(skill)
         team = stats.Team(name, remark, *skills)
         teams.append(team)

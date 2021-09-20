@@ -177,11 +177,10 @@ class Skill(Stat):
         :param enemy: class Enemy
         :return: a float point number of the mathematical expectation of damages caused by this skill
         """
-        super(Skill, self).__init__(self.char.batk,
-                                    self.char.atk + self.buff_atk + self.char.batk * self.patk/100,
-                                    self.char.critical_rate + self.buff_cr,
-                                    self.char.critical_dmg + self.buff_cr,
-                                    self.char.dmg_bonus + self.buff_db)
+        self.atk = self.char.atk + self.buff_atk + self.char.batk * self.patk/100
+        self.critical_rate = self.char.critical_rate + self.buff_cr
+        self.critical_dmg = self.char.critical_dmg + self.buff_cd
+        self.dmg_bonus = self.char.dmg_bonus + self.buff_db
 
         if self.critical_rate <= 100:
             cd = (1 + self.critical_rate * self.critical_dmg / 10000)
@@ -202,6 +201,8 @@ class Skill(Stat):
                 rs = 1 - original_res
 
         dr = (5*90+500)/(enemy.defence*(1+enemy.level/100)*(1-self.def_red/100)+5*90+500)
+
+        # print(self.dmgm, self.atk, self.critical_rate, self.critical_dmg, self.dmg_bonus, rs, dr)
 
         dmg = self.atk * self.dmgm/100 * cd * (1+self.dmg_bonus/100) * rs * (1+self.im/100) * dr * (1-enemy.dmg_red/100)
         return dmg
@@ -290,7 +291,9 @@ class Team:
         self.remark = remark
         self.time = time
         self._skills = [skill for skill in skills]
-        self.idx_name = {skill.name: i for i, skill in enumerate(skills)}
+        self.idx_name = defaultdict(lambda: [])
+        for i, skill in enumerate(skills):
+            self.idx_name[skill.name].append(i)
 
     def _idx_error(self, idx, keys):
         """
@@ -311,7 +314,7 @@ class Team:
         """
         if isinstance(idx, str):
             self._idx_error(idx, self.idx_name.keys())
-            return self._skills[self.idx_name[idx]]
+            return self[self.idx_name[idx]]
 
         elif isinstance(idx, list) or isinstance(idx, tuple):
             if len(idx) == 0:
@@ -336,8 +339,8 @@ class Team:
         """
         if isinstance(idx, str):
             self._idx_error(idx, self.idx_name.keys())
-            self._skills.pop(self.idx_name[idx])
-            del self.idx_name[idx]
+            self.__delitem__(self.idx_name[idx])
+            # del self.idx_name[idx]
 
         elif isinstance(idx, list) or isinstance(idx, tuple):
             if len(idx) == 0:
