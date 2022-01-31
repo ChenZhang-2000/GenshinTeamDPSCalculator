@@ -102,14 +102,63 @@ class Character(Stat):
         super(Character, self).__init__(batk, atk, critical_rate, critical_dmg, dmg_bonus)
 
     def get_printable_info(self):
-        return [self.name, self.batk, round(self.atk, 2), round(self.critical_rate, 2),
-                round(self.critical_dmg, 2), round(self.dmg_bonus, 2)]
+        return  #  [self.name, self.batk, round(self.atk, 2), round(self.critical_rate, 2),
+                #   round(self.critical_dmg, 2), round(self.dmg_bonus, 2)]
 
     def get_info(self):
-        return [self.name, self.batk, self.atk, self.critical_rate, self.critical_dmg, self.dmg_bonus]
+        return #  [self.name, self.batk, self.atk, self.critical_rate, self.critical_dmg, self.dmg_bonus]
 
     def print_info(self):
-        print(self.name, self.batk, self.atk, self.critical_rate, self.critical_dmg, self.dmg_bonus)
+        return
+        # print(self.name, self.batk, self.atk, self.critical_rate, self.critical_dmg, self.dmg_bonus)
+
+    def skill_a(self):
+        return
+
+    def skill_A(self):
+        return
+
+    def skill_e(self):
+        return
+
+    def skill_E(self):
+        return
+
+    def skill_q(self):
+        return
+
+    def skill_Q(self):
+        return
+
+    def skill_p(self):
+        return
+
+    def skill_P(self):
+        return
+
+    def buff_a(self):
+        return
+
+    def buff_A(self):
+        return
+
+    def buff_e(self):
+        return
+
+    def buff_E(self):
+        return
+
+    def buff_q(self):
+        return
+
+    def buff_Q(self):
+        return
+
+    def buff_p(self):
+        return
+
+    def buff_P(self):
+        return
 
 
 class Skill(Stat):
