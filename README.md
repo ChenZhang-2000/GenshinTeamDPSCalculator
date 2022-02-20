@@ -1,4 +1,5 @@
 # Genshin Team DPS Calculator
-#### Version: Beta.0.1
+#### Version: Beta.1
+#### Currently Under Development
 
 -----
