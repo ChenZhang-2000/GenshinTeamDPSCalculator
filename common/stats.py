@@ -1,7 +1,10 @@
 import numpy as np
+import torch
 
 
-STATS_LENGTH = 30
+STATS_LENGTH = 33
+ESTATS_LENGTH = 12
+SKILL_TYPE_MAP = {'a': 'a', 'A': 'A', 'e': 'e', 'E': 'e', 'q': 'q', 'Q': 'q', 'l': 'l', 'L': 'l'}
 
 
 class Stats:
@@ -44,17 +47,42 @@ class Stats:
     25：岩元素伤害加成
     26：岩元素抗性
 
-    27：物理伤害加成
-    28：物理抗性
+    27：草元素伤害加成
+    28：草元素抗性
 
-    29：附加伤害
+    29：物理伤害加成
+    30：物理抗性
+
+    31：其他增伤
+    
+    32：附加伤害
     """
-    def __init__(self, array: np.array = np.zeros((1, STATS_LENGTH))):
-        assert array.shape[1] == STATS_LENGTH
+    def __init__(self, array: torch.tensor = torch.zeros(1, STATS_LENGTH)):
+        assert array.shape[1] == STATS_LENGTH, f"{array.shape[1]} {STATS_LENGTH}"
         self.data = array
 
     def __getitem__(self, idx):
-        return self.data[idx]
+        if isinstance(idx, str):
+            if idx == 'pyro':
+                return self.data[15]
+            elif idx == 'hydro':
+                return self.data[17]
+            elif idx == 'electro':
+                return self.data[19]
+            elif idx == 'cryo':
+                return self.data[21]
+            elif idx == 'anemo':
+                return self.data[23]
+            elif idx == 'geo':
+                return self.data[25]
+            elif idx == 'dendro':
+                return self.data[27]
+            elif idx == 'physical':
+                return self.data[29]
+            else:
+                raise KeyError
+        else:
+            return self.data[idx]
 
     def __setitem__(self, key, value):
         self.data[key] = value
@@ -103,15 +131,15 @@ class Stats:
         return self.data.__str__()
 
     def copy(self):
-        return Stats(np.copy(self.data))
+        return Stats(torch.clone(self.data))
 
     def sum(self):
         self.data = np.sum(self.data, axis=0).reshape((1, STATS_LENGTH))
 
 
 class Buff(Stats):
-    def __init__(self, char: int, array: np.array = np.zeros((1, Stats.length)),
-                 skill_type: str = 'all', field_type: str = 'all', element_type = 'all'):
+    def __init__(self, char: int, array: torch.tensor = torch.zeros(1, Stats.length),
+                 skill_type: str = 'all', field_type: str = 'all', element_type='all'):
         """
         char: index of the characters in the team
         array: numpy array of shape n x stats_length with each row being the values of the buff
@@ -132,15 +160,15 @@ class BasicBuff(Buff):
     """
     This buff will bonus characters without condition
     """
-    def __init__(self, char: int, array: np.array = np.zeros((1, Stats.length)),
-                 skill_type: str = 'all', field_type: str = 'all', element_type = 'all'):
+    def __init__(self, char: int, array: torch.tensor = torch.zeros(1, Stats.length),
+                 skill_type: str = 'all', field_type: str = 'all', element_type='all'):
         """
         char: index of the characters in the team
         array: numpy array of shape n x stats_length with each row being the values of the buff
         skill_type: type of buffed skill, accepted values: all, a, A, e=E, l=L, q=Q, p=P
         field_type: whether the buff will buff the characters on field only, accepted values: all, on, off
         element_type: whether the buff affect on certain elements, accepted values:
-            all, pyro,  hydro, electro, anemo, cryo, geo, physical
+            all, pyro,  hydro, electro, anemo, cryo, geo, dendro, physical
         """
         # print(array)
         super().__init__(char, array, skill_type, field_type)
@@ -150,8 +178,8 @@ class ProportionalBuff(Buff):
     """
     This buff will bonus characters without condition
     """
-    def __init__(self, char: int, array: np.array = np.zeros((2, Stats.length)),
-                 skill_type: str = 'all', field_type: str = 'all', element_type = 'all'):
+    def __init__(self, char: int, array: torch.tensor = torch.zeros(2, Stats.length),
+                 skill_type: str = 'all', field_type: str = 'all', element_type='all'):
         """
         char: index of the characters in the team
         array: numpy array of shape 2 x stats_length with first row being the proportions, the second row being the one hot
@@ -172,7 +200,107 @@ class ProportionalBuff(Buff):
 
         stats: numpy array of team stats with shape 4 x stats_length
         """
-        stats = np.copy(stats[self.char_idx])
+        stats = torch.clone(stats[self.char_idx])
         stats[:, [1, 4, 7]] = stats[:, [1, 4, 7]] * stats[:, [0, 3, 6]] / 100
         self.data = self.func(stats)
+
+
+class Infusion: pass
+
+
+class Monster:
+    length = ESTATS_LENGTH
+    """
+    0: hp
+    1: 防御力
+    2: 火元素抗性
+    3: 水元素抗性
+    4: 雷元素抗性
+    5: 风元素抗性
+    6: 冰元素抗性
+    7: 岩元素抗性
+    8: 草元素抗性
+    9: 物理抗性
+    10: 防御力固定值削减
+    11: 防御力百分比削减
+    """
+    def __init__(self, array: torch.tensor = torch.zeros(1, ESTATS_LENGTH)):
+        assert array.shape[1] == ESTATS_LENGTH
+        # print(array)
+        self.data = array
+        self.hp = array[0, 0]
+        self.defence = array[0, 1]
+        self.res = array[0, 2:]
+
+
+class Debuff(Monster):
+    pass
+
+
+class Skills:
+    def __init__(self, scale, skill_type, element_type):
+        self.scale = scale
+        self.skill_type = skill_type
+        self.element_type = element_type
+
+    def buff_valid(self, buff, on_field):
+        correct_skill = False
+        correct_field = False
+        correct_element = False
+
+        if buff.skill_type == 'all':
+            correct_skill = True
+        elif buff.skill_type == self.skill_type:
+            correct_skill = True
+
+        if buff.field_type == 'all':
+            correct_field = True
+        elif buff.field_type == 'on' and on_field:
+            correct_field = True
+        elif buff.field_type == 'off' and not on_field:
+            correct_field = True
+
+        if buff.element_type == 'all':
+            correct_element = True
+        elif buff.element_type == self.element_type:
+            correct_element = True
+
+        return correct_field and correct_skill and correct_element
+
+    def buff_skill(self, team, char_idx, buffs):
+        """
+        This decorator will check all the buffs of a skill, and changed the team stats to buffed stats
+        """
+        basic_buffs = []
+        proportion_buffs = []
+
+        char = team[char_idx]
+
+        for b in char.weapon.permanent_buffs + char.artifact.permanent_buffs:
+            if isinstance(b, BasicBuff):
+                char.stats.data += b
+            elif isinstance(b, ProportionalBuff):
+                proportion_buffs.append(b)
+
+        for buff in buffs:
+            if isinstance(buff, BasicBuff):
+                basic_buffs.append(buff)
+            elif isinstance(buff, ProportionalBuff):
+                proportion_buffs.append(buff)
+
+        for b in basic_buffs:
+             add_buff(b, stats, func_types)
+
+        before_prop = stats.copy()
+        for buff in proportion_buffs:
+            buff.load_buff(before_prop)
+            add_buff(buff, stats, func_types)
+
+        self.set_team_stats(stats)
+
+        return buff_func
+
+
+def damage(scale, atk, additional, critical, dmg_bonus, resistance, defence):
+    return (scale * atk + additional) * critical * dmg_bonus * resistance * defence
 

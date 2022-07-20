@@ -1,30 +1,10 @@
 import json
 import numpy as np
 
-from common.stats import Stats, Buff, BasicBuff, ProportionalBuff
+from common.stats import Stats, Buff, BasicBuff, ProportionalBuff, ESTATS_LENGTH, Monster
 
 
 ENEMY_FACTORY = {}
-ESTATS_LENGTH = 10
-
-
-class EStats:
-    length = ESTATS_LENGTH
-    """
-    0: hp
-    1: 防御力
-    2: 火元素抗性
-    3: 水元素抗性
-    4: 雷元素抗性
-    5: 风元素抗性
-    6: 冰元素抗性
-    7: 岩元素抗性
-    8: 物理抗性
-    9: 草元素抗性
-    """
-    def __init__(self, array: np.array = np.zeros((1, ESTATS_LENGTH))):
-        assert array.shape[1] == ESTATS_LENGTH
-        self.data = array
 
 
 def register_enemy(cls):
@@ -36,9 +16,39 @@ def register_enemy(cls):
     return register(cls)
 
 
-class Enemy(object):
-    def __init__(self):
+class Enemy(Monster):
+    def __init__(self, level):
         data = json.load(open(f"common\\enemy\\stats\\{self.__class__.__name__}.json"))
+        super().__init__(array=np.array(data['stats']).reshape(1, Monster.length))
+        self.stats = self.data - 0
+        self.level = level
 
-        self.stats = EStats(np.array(data['stats']).reshape(1, EStats.length))
+    def __getitem__(self, idx):
+        if isinstance(idx, str):
+            if idx == 'pyro':
+                return self.stats[2]
+            elif idx == 'hydro':
+                return self.stats[3]
+            elif idx == 'electro':
+                return self.stats[4]
+            elif idx == 'cryo':
+                return self.stats[5]
+            elif idx == 'anemo':
+                return self.stats[6]
+            elif idx == 'geo':
+                return self.stats[7]
+            elif idx == 'dendro':
+                return self.stats[8]
+            elif idx == 'physical':
+                return self.stats[9]
+            else:
+                raise KeyError
+        else:
+            return self.data[idx]
+
+    def change_stats(self, residual):
+        self.stats = self.data - residual
+        mask = np.zeros(self.stats.shape, bool)
+        mask[2:10] = self.stats[2:10] < 0
+        self.stats[mask] = self.stats[mask]/2
 

@@ -1,7 +1,8 @@
 import json
 import numpy as np
+import torch
 
-from common.stats import Stats, Buff, BasicBuff, ProportionalBuff
+from common.stats import Stats, Buff, BasicBuff, ProportionalBuff, damage
 
 
 CHAR_FACTORY = {}
@@ -30,16 +31,13 @@ def add_buff(buff, stats, types):
 
     if buff.field_type == 'all':
         correct_field = True
-
     elif buff.field_type == 'on' and types[1]:
         correct_field = True
-
     elif buff.field_type == 'off' and not types[1]:
         correct_field = True
 
     if buff.element_type == 'all':
         correct_element = True
-
     elif buff.element_type == types[2]:
         correct_element = True
 
@@ -47,7 +45,7 @@ def add_buff(buff, stats, types):
         stats[buff.char_idx] += buff.data
 
 
-def buff(func):
+def buff_skill(func):
     """
     This decorator will check all the buffs of a skill, and changed the team stats to buffed stats
     """
@@ -55,26 +53,28 @@ def buff(func):
 
     def buff_func(self, *args, **kwargs):
         nonlocal name
-        func_types = [SKILL_TYPE_MAP[name[-1]], self.on_field == self.idx, kwargs['element']]
+        func_types = [SKILL_TYPE_MAP[name[-1]],
+                      self.on_field == self.idx,
+                      kwargs['element']]
         # [skill_type, field_type, element_type]
         basic_buffs = []
         proportion_buffs = []
-        stats = self.team_stats.copy()
+        stats = self._team_stats.copy()
 
-        for buff in self.weapon.permanent_buffs + self.artifact.permanent_buffs:
-            if isinstance(buff, BasicBuff):
-                self.stats.data += buff
-            elif isinstance(buff, ProportionalBuff):
-                proportion_buffs.append(buff)
+        for b in self.weapon.permanent_buffs + self.artifact.permanent_buffs:
+            if isinstance(b, BasicBuff):
+                self.stats.data += b
+            elif isinstance(b, ProportionalBuff):
+                proportion_buffs.append(b)
 
-        for arg in args:
+        for arg in args+kwargs['buff']:
             if isinstance(arg, BasicBuff):
                 basic_buffs.append(arg)
             elif isinstance(arg, ProportionalBuff):
                 proportion_buffs.append(arg)
 
-        for buff in basic_buffs:
-            add_buff(buff, stats, func_types)
+        for b in basic_buffs:
+            add_buff(b, stats, func_types)
 
         before_prop = stats.copy()
         for buff in proportion_buffs:
@@ -82,23 +82,23 @@ def buff(func):
             add_buff(buff, stats, func_types)
 
         self.set_team_stats(stats)
+
         return func(self, *args, **kwargs)
 
     return buff_func
 
 
 class Character(object):
-    def __init__(self, weapon, enemy, artifact):
+    def __init__(self, weapon, enemy, artifact, level=90):
         data = json.load(open(f"common\\characters\\stats\\{self.__class__.__name__}.json"))
 
         self.idx = 0
         self.element = data['element']
+        self.level = level
 
-        # print(np.array(data['stats']).reshape(1, Stats.length))
-        # print(weapon.stats.data)
-        # print(np.array(data['stats']).reshape(1, Stats.length) + weapon.stats.data)
-        self.stats = Stats(np.array(data['stats']).reshape(1, Stats.length) + weapon.stats.data + artifact.stats.data)
-        self.team_stats = Stats(np.zeros((4, Stats.length)))
+        self.stats = Stats(torch.tensor(data['stats']).reshape(1, Stats.length) + weapon.stats.data + artifact.stats.data)
+        self._team_stats = Stats(torch.zeros(4, Stats.length))
+        self.team_stats = Stats(torch.zeros(4, Stats.length))
         self.scaling = data['skills']
         self.on_field = 0
 
@@ -127,55 +127,94 @@ class Character(object):
     def set_on_field(self, on_field):
         self.on_field = on_field
 
-    @buff
-    def skill_a(self, counter, element, buff=None):
-        scaling = self.stats['skills']['a']
-        return self.element, scaling[counter, 0].reshape(1, 1), self.stats
+    def attack(self):
+        return self.stats[0]*(1+self.stats[2]/100)
 
-    @buff
-    def skill_A(self, element, buff=None):
-        scaling = self.stats['skills']['A']
-        return self.element, scaling[:, 0].reshape(scaling.shape[0], 1), self.stats
+    def critical(self):
+        return 1 + self.stats[10]/100 * self.stats[11]/100
 
-    @buff
-    def skill_l(self, element, buff=None):
-        scaling = self.stats['skills']['pl']
-        return self.element, scaling[0, 0].reshape(1, 1), self.stats
+    def dmg_bonus(self, element):
+        return 1 + self.stats[element]/100 + self.stats[31]/100
 
-    @buff
-    def skill_L(self, element, buff=None):
-        scaling = self.stats['skills']['PL']
-        return self.element, scaling[1, 0].reshape(1, 1), self.stats
+    def resistance(self, element):
+        return 1 - self.enemy[element]/100
 
-    @buff
-    def skill_e(self, element, buff=None):
-        scaling = self.stats['skills']['e']
-        return self.element, scaling[0, 0].reshape(1, 1), self.stats
+    def defence(self, ignorance=0):
+        d = self.enemy[1] * (1 - self.enemy[11] / 100) * (1 - ignorance / 100)
+        return 500 * self.level / (d * self.enemy.level + 500 * self.level)
 
-    @buff
-    def skill_E(self, element, buff=None):
-        scaling = self.stats['skills']['E']
-        return self.element, scaling[0, 0].reshape(1, 1), self.stats
+    @buff_skill
+    def skill_a(self, counter, buff=()):
+        scalings = np.array(self.scaling['a'])
+        a_maximum = scalings.shape[0]
 
-    @buff
-    def skill_q(self, element, buff=None):
-        scaling = self.stats['skills']['q']
-        return self.element, scaling[0, 0].reshape(1, 1), self.stats
+        scale = ((counter//a_maximum) * np.sum(scalings) + np.sum(scalings[:(counter % a_maximum)]))/100
 
-    @buff
-    def skill_Q(self, element, buff=None):
-        scaling = self.stats['skills']['Q']
-        return self.element, scaling[0, 0].reshape(1, 1), self.stats
+        return damage(scale, self.attack(), self.stats[32], self.critical(), self.dmg_bonus('physical'),
+                      self.resistance('physical'), self.defence())
 
-    @buff
-    def skill_p(self, element, buff=None):
-        scaling = self.stats['skills']['p']
-        return self.element, scaling[0, 0].reshape(1, 1), self.stats
+    @buff_skill
+    def skill_A(self, buff=()):
+        scale = sum(self.stats['skills']['A'][0])
 
-    @buff
-    def skill_P(self, element, buff=None):
-        scaling = self.stats['skills']['P']
-        return self.element, scaling[0, 0].reshape(1, 1), self.stats
+        return damage(scale, self.attack(), self.stats[32], self.critical(), self.dmg_bonus('physical'),
+                      self.resistance('physical'), self.defence())
+
+    @buff_skill
+    def skill_l(self, buff=()):
+        scale = self.stats['skills']['pl']
+
+        return damage(scale, self.attack(), self.stats[32], self.critical(), self.dmg_bonus('physical'),
+                      self.resistance('physical'), self.defence())
+
+    @buff_skill
+    def skill_L(self, buff=()):
+        scale = self.stats['skills']['PL']
+
+        return damage(scale, self.attack(), self.stats[32], self.critical(), self.dmg_bonus('physical'),
+                      self.resistance('physical'), self.defence())
+
+    @buff_skill
+    def skill_e(self, buff=()):
+        scale = self.stats['skills']['e']
+
+        return damage(scale, self.attack(), self.stats[32], self.critical(), self.dmg_bonus(self.element),
+                      self.resistance(self.element), self.defence())
+
+    @buff_skill
+    def skill_E(self, buff=()):
+        scale = self.stats['skills']['E']
+
+        return damage(scale, self.attack(), self.stats[32], self.critical(), self.dmg_bonus(self.element),
+                      self.resistance(self.element), self.defence())
+
+    @buff_skill
+    def skill_q(self, buff=()):
+        scale = self.stats['skills']['q']
+
+        return damage(scale, self.attack(), self.stats[32], self.critical(), self.dmg_bonus(self.element),
+                      self.resistance(self.element), self.defence())
+
+    @buff_skill
+    def skill_Q(self, buff=()):
+        scale = self.stats['skills']['Q']
+
+        return damage(scale, self.attack(), self.stats[32], self.critical(), self.dmg_bonus(self.element),
+                      self.resistance(self.element), self.defence())
+
+    @buff_skill
+    def skill_p(self, buff=()):
+        scale = self.stats['skills']['p']
+
+        return damage(scale, self.attack(), self.stats[32], self.critical(), self.dmg_bonus(self.element),
+                      self.resistance(self.element), self.defence())
+
+    @buff_skill
+    def skill_P(self, buff=()):
+        scale = self.stats['skills']['P']
+
+        return damage(scale, self.attack(), self.stats[32], self.critical(), self.dmg_bonus(self.element),
+                      self.resistance(self.element), self.defence())
 
 
 if __name__ == "__main__":

@@ -1,7 +1,8 @@
 import json
 import numpy as np
+import torch
 
-from common.stats import Stats, Buff, BasicBuff, ProportionalBuff
+from common.stats import Stats, Buff, BasicBuff, ProportionalBuff, STATS_LENGTH
 
 
 ARTIFACT_FACTORY = {}
@@ -24,7 +25,8 @@ class Artifact(object):
 
 
 class ArtifactSet(object):
-    def __init__(self, stats: np.array = np.zeros((1,30)), two_set: type = Artifact, four_set: type = Artifact):
+    def __init__(self, stats: np.array = torch.zeros(1, STATS_LENGTH),
+                 two_set: type = Artifact, four_set: type = Artifact):
 
         self.two_set = two_set
         self.four_set = four_set
@@ -33,6 +35,9 @@ class ArtifactSet(object):
         self.stats = stats
         self.permanent_buffs = []
         self.partial_buffs = []
+
+    def set_stats(self, stats):
+        self.stats = stats
 
     def set_char_idx(self, idx):
         self.char_idx = idx
