@@ -6,14 +6,34 @@ from common.characters.base_char import Character
 
 class Team:
     def __init__(self, *chars: Character):
+        """
+
+        Pseudo Code:
+
+        for character in team do:
+            add permanent_buffs to character
+        # consider doing this step in the initialization of the team
+        """
         self.chars = chars
         self.num_chars = len(chars)
+        self.stats = torch.stack(list(map(lambda c: c.stats.data.flatten(), self.chars)))
+        self._static_stats = torch.clone(self.stats)
+        self._dynamic_stats = torch.clone(self.stats)
 
     def __getitem__(self, item):
         return self.chars[item]
 
-    def stats(self):
-        return torch.vstack(list(map(lambda c: c.data, self.chars)))
+    def add_basic_buff(self, buff, c_idx):
+        self._static_stats[c_idx] += buff
+        self._dynamic_stats[c_idx] += buff
+
+    def add_proportional_buff(self, buff, c_idx):
+        buff.load_buff(self._static_stats)
+        self._dynamic_stats[c_idx] += buff
+
+    def init_stats(self):
+        self._static_stats = torch.clone(self.stats)
+        self._dynamic_stats = torch.clone(self.stats)
 
 
 class Model:

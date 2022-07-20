@@ -64,25 +64,25 @@ class Stats:
     def __getitem__(self, idx):
         if isinstance(idx, str):
             if idx == 'pyro':
-                return self.data[15]
+                return self.data[:, 15]
             elif idx == 'hydro':
-                return self.data[17]
+                return self.data[:, 17]
             elif idx == 'electro':
-                return self.data[19]
+                return self.data[:, 19]
             elif idx == 'cryo':
-                return self.data[21]
+                return self.data[:, 21]
             elif idx == 'anemo':
-                return self.data[23]
+                return self.data[:, 23]
             elif idx == 'geo':
-                return self.data[25]
+                return self.data[:, 25]
             elif idx == 'dendro':
-                return self.data[27]
+                return self.data[:, 27]
             elif idx == 'physical':
-                return self.data[29]
+                return self.data[:, 29]
             else:
                 raise KeyError
         else:
-            return self.data[idx]
+            return self.data.__getitem__(idx)
 
     def __setitem__(self, key, value):
         self.data[key] = value
@@ -138,7 +138,7 @@ class Stats:
 
 
 class Buff(Stats):
-    def __init__(self, char: int, array: torch.tensor = torch.zeros(1, Stats.length),
+    def __init__(self, char, array: torch.tensor = torch.zeros(1, Stats.length),
                  skill_type: str = 'all', field_type: str = 'all', element_type='all'):
         """
         char: index of the characters in the team
@@ -149,18 +149,21 @@ class Buff(Stats):
             all, pyro,  hydro, electro, anemo, cryo, geo, physical
         """
         # print(array)
+        self.char = char
         super().__init__(array)
-        self.char_idx = char
         self.skill_type = skill_type
         self.field_type = field_type
         self.element_type = element_type
+
+    def valid(self, skill, team):
+        return True
 
 
 class BasicBuff(Buff):
     """
     This buff will bonus characters without condition
     """
-    def __init__(self, char: int, array: torch.tensor = torch.zeros(1, Stats.length),
+    def __init__(self, char, array: torch.tensor = torch.zeros(1, Stats.length),
                  skill_type: str = 'all', field_type: str = 'all', element_type='all'):
         """
         char: index of the characters in the team
@@ -178,7 +181,7 @@ class ProportionalBuff(Buff):
     """
     This buff will bonus characters without condition
     """
-    def __init__(self, char: int, array: torch.tensor = torch.zeros(2, Stats.length),
+    def __init__(self, char, array: torch.tensor = torch.zeros(Stats.length, Stats.length),
                  skill_type: str = 'all', field_type: str = 'all', element_type='all'):
         """
         char: index of the characters in the team
@@ -191,7 +194,7 @@ class ProportionalBuff(Buff):
         """
         # print(array)
         assert array.shape == (2, Stats.length)
-        self.func = lambda x: x @ array[0] * array[1]
+        self.func = lambda x:  array @ x
         super().__init__(char=char, skill_type=skill_type, field_type=field_type)
 
     def load_buff(self, stats):
@@ -200,12 +203,28 @@ class ProportionalBuff(Buff):
 
         stats: numpy array of team stats with shape 4 x stats_length
         """
-        stats = torch.clone(stats[self.char_idx])
-        stats[:, [1, 4, 7]] = stats[:, [1, 4, 7]] * stats[:, [0, 3, 6]] / 100
+        stats = torch.clone(stats[self.char])
+        stats[:, [1, 4, 7]] += (1 + stats[:, [2, 5, 8]] / 100) * stats[:, [0, 3, 6]]
+        stats[:, [2, 5, 8]] = 0
         self.data = self.func(stats)
 
 
-class Infusion: pass
+class Infusion:
+    def __init__(self, char, skill_type_from, skill_infused):
+        """
+        skill_type_from: the skill type to convert
+        """
+        self.char = char
+        self.skill_type_from = skill_type_from
+        self.skill_infused = skill_infused
+
+
+class Reaction:
+    pass
+
+
+class AmplifyingReaction(Reaction):
+    pass
 
 
 class Monster:
@@ -238,14 +257,15 @@ class Debuff(Monster):
 
 
 class Skills:
-    def __init__(self, scale, skill_type, element_type):
+    def __init__(self, char, scale, skill_type, element_type):
+        self.char = char
         self.scale = scale
         self.skill_type = skill_type
         self.element_type = element_type
 
-    def buff_valid(self, buff, on_field):
+    def buff_valid(self, buff, team):
         correct_skill = False
-        correct_field = False
+        correct_validation = False
         correct_element = False
 
         if buff.skill_type == 'all':
@@ -253,28 +273,29 @@ class Skills:
         elif buff.skill_type == self.skill_type:
             correct_skill = True
 
-        if buff.field_type == 'all':
-            correct_field = True
-        elif buff.field_type == 'on' and on_field:
-            correct_field = True
-        elif buff.field_type == 'off' and not on_field:
-            correct_field = True
+        if buff.valid(self, team):
+            correct_validation = True
 
         if buff.element_type == 'all':
             correct_element = True
         elif buff.element_type == self.element_type:
             correct_element = True
 
-        return correct_field and correct_skill and correct_element
+        return correct_validation and correct_skill and correct_element
 
-    def buff_skill(self, team, char_idx, buffs):
+    def buff_skill(self, team, buffs):
         """
         This decorator will check all the buffs of a skill, and changed the team stats to buffed stats
+
+
+        Pseudo Code:
+
         """
+
+        char = team[self.char.idx]
+
         basic_buffs = []
         proportion_buffs = []
-
-        char = team[char_idx]
 
         for b in char.weapon.permanent_buffs + char.artifact.permanent_buffs:
             if isinstance(b, BasicBuff):
@@ -289,16 +310,44 @@ class Skills:
                 proportion_buffs.append(buff)
 
         for b in basic_buffs:
-             add_buff(b, stats, func_types)
+            if self.buff_valid(b, team):
+                team.add_basic_buff(b, self.char.idx)
 
-        before_prop = stats.copy()
-        for buff in proportion_buffs:
-            buff.load_buff(before_prop)
-            add_buff(buff, stats, func_types)
+        for b in proportion_buffs:
+            if self.buff_valid(b, team):
+                team.add_basic_buff(b, self.char.idx)
 
-        self.set_team_stats(stats)
+    def debuff_enemy(self, enemy):
+        pass
 
-        return buff_func
+    def damage(self, team, enemy, buffs, reaction, infusion=None):
+        """
+
+
+        Pseudo Code:
+
+        if infusion != None do:
+            return
+
+        """
+        if infusion:
+            if self.char.idx == infusion.char.idx and infusion.skill_type_from == self.skill_type:
+                return infusion.skill_infused.dmage(team, enemy, buffs, reaction)
+        else:
+            self.buff_skill(team, buffs)
+            self.debuff_enemy(enemy, )
+            c_idx = self.char.idx
+            stats = team[c_idx]
+            self.calculate(stats, enemy)
+
+    def calculate(self, stats, enemy):
+        """
+        stats:
+        """
+
+
+class TransformativeReaction(Reaction, Skills):
+    pass
 
 
 def damage(scale, atk, additional, critical, dmg_bonus, resistance, defence):
