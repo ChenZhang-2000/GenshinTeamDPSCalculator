@@ -21,6 +21,7 @@ class Enemy(Monster):
         data = json.load(open(f"common\\enemy\\stats\\{self.__class__.__name__}.json"))
         super().__init__(array=np.array(data['stats']).reshape(1, Monster.length))
         self.stats = self.data - 0
+        self.dynamic_stats = self.data - 0
         self.level = level
 
     def __getitem__(self, idx):
@@ -47,8 +48,9 @@ class Enemy(Monster):
             return self.data[idx]
 
     def change_stats(self, residual):
-        self.stats = self.data - residual
-        mask = np.zeros(self.stats.shape, bool)
-        mask[2:10] = self.stats[2:10] < 0
-        self.stats[mask] = self.stats[mask]/2
+        self.dynamic_stats = self.stats + residual
+
+    def init_stats(self):
+        self.dynamic_stats = self.stats + 0
+
 

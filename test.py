@@ -9,11 +9,6 @@ from common.enemy import ENEMY_FACTORY
 from common.weapon import WEAPON_FACTORY
 
 
-def main():
-
-    return
-
-
 if __name__ == "__main__":
     # main()
     artifact = ArtifactSet(two_set=ARTIFACT_FACTORY['SeveredFate'],

@@ -2,6 +2,7 @@ import numpy as np
 import torch
 
 from common.characters.base_char import Character
+from common.stats import BasicBuff, ProportionalBuff
 
 
 class Team:
@@ -15,6 +16,16 @@ class Team:
         # consider doing this step in the initialization of the team
         """
         self.chars = chars
+        self.on_field = 0
+        self.permanent_prop_buffs = tuple([] for i in chars)
+        for i, char in enumerate(chars):
+            for b in char.weapon.permanent_buffs + char.artifact.permanent_buffs:
+                if isinstance(b, BasicBuff):
+                    char.stats += b
+                elif isinstance(b, ProportionalBuff):
+                    self.permanent_prop_buffs[i].append(b)
+                else:
+                    raise TypeError
         self.num_chars = len(chars)
         self.stats = torch.stack(list(map(lambda c: c.stats.data.flatten(), self.chars)))
         self._static_stats = torch.clone(self.stats)
