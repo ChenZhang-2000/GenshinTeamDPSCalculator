@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from .base_char import register_char, Character
-from common.stats import Stats, Buff, BasicBuff, ProportionalBuff, Infusion, Skills, PolySkills, damage
+from common.stats import Stats, Buff, BasicBuff, ProportionalBuff, Infusion, Skills, PolySkills
 
 
 def calculate(self, stats, enemy):
@@ -10,10 +10,10 @@ def calculate(self, stats, enemy):
     stats:
     """
     scale = self.scale
-    atk = stats[0] * (1 + stats[2] / 100) + stats[1]
-    additional = stats[32]
-    critical = 1 + (stats[9] * stats[10] / 10000)
-    dmg_bonus = 1 + (stats[self.element_type] / 100) + (stats[31] / 100)
+    atk = stats.atk()
+    additional = stats.additional()
+    critical = stats.critical()
+    dmg_bonus = stats.dmg_bonus(self.element_type)
     resistance = enemy[self.element_type]
     if resistance < 0:
         resistance = 1 - resistance / 200
@@ -22,73 +22,74 @@ def calculate(self, stats, enemy):
     else:
         resistance = 1 - resistance / 100
     defence = enemy[1] * (1 - enemy[11] / 100) * 0.4
+    def_factor = (1 + self.char.level/100) * 500 / (defence * (1 + enemy.level/100) + (1 + self.char.level/100) * 500)
 
-    return damage(scale, atk, additional, critical, dmg_bonus, resistance, defence)
+    return (scale/100 * atk + additional) * critical * dmg_bonus * resistance * def_factor
 
 
 class RaidenInfusion(Infusion):
     def __init__(self, char, scaling, stacks):
         bonus = 1.31 * stacks
-        super().__init__(char, {'a': PolySkills(self, [sum(i)+bonus*len(i) for i in scaling[:5]], 'a', 'electro'),
-                                'A': Skills(self, sum(scaling[5])+bonus*2, 'A', 'electro'),
-                                'pl': Skills(self, sum(scaling[6])+bonus, 'pl', 'electro'),
-                                'PL_low': Skills(self, scaling[7][0]+bonus, 'PL_low', 'electro'),
-                                'PL_high': Skills(self, scaling[7][1]+bonus, 'PL_high', 'electro')})
+        super().__init__(char, {'a': PolySkills(char, [sum(i)+bonus*len(i) for i in scaling[:5]], 'a', 'electro'),
+                                'A': Skills(char, sum(scaling[5])+bonus*2, 'A', 'electro'),
+                                'pl': Skills(char, sum(scaling[6])+bonus, 'pl', 'electro'),
+                                'PL_low': Skills(char, scaling[7][0]+bonus, 'PL_low', 'electro'),
+                                'PL_high': Skills(char, scaling[7][1]+bonus, 'PL_high', 'electro')})
         self.char.skill_q.scale += 7 * stacks
 
 
 class Buff_e(BasicBuff):
-    def __init__(self):
-        super().__init__(char=self,
+    def __init__(self, char):
+        super().__init__(char=char,
                          skill_type={'q', 'Q'},
-                         array=torch.tensor([0., 0., 0.,
-                                             0., 0., 0.,
-                                             0., 0., 0.,
-                                             0., 0., 0., 0., 0., 0.,
-                                             0., 0.,
-                                             0., 0.,
-                                             0., 0.,
-                                             0., 0.,
-                                             0., 0.,
-                                             0., 0.,
-                                             0., 0.,
-                                             0., 0.,
-                                             0.,
-                                             0.]))
+                         array=torch.tensor([[0., 0., 0.,
+                                              0., 0., 0.,
+                                              0., 0., 0.,
+                                              0., 0., 0., 0., 0., 0.,
+                                              0., 0.,
+                                              0., 0.,
+                                              0., 0.,
+                                              0., 0.,
+                                              0., 0.,
+                                              0., 0.,
+                                              0., 0.,
+                                              0., 0.,
+                                              0.,
+                                              0.]]))
 
     def valid(self, skill, team):
+        # print(self.char.idx == team.on_field)
         return self.char.idx == team.on_field
 
     def update(self, energy=80):
-        self.data[31] = energy * 0.3
+        self.data[0, 31] = energy * 0.3
 
 
 class BuffConstellation4(BasicBuff):
-    def __init__(self):
+    def __init__(self, char):
         super().__init__(char=self,
                          skill_type={'q', 'Q'},
-                         array=torch.tensor([0., 0., 30.,
-                                             0., 0., 0.,
-                                             0., 0., 0.,
-                                             0., 0., 0., 0., 0., 0.,
-                                             0., 0.,
-                                             0., 0.,
-                                             0., 0.,
-                                             0., 0.,
-                                             0., 0.,
-                                             0., 0.,
-                                             0., 0.,
-                                             0., 0.,
-                                             0.,
-                                             0.]))
+                         array=torch.tensor([[0., 0., 30.,
+                                              0., 0., 0.,
+                                              0., 0., 0.,
+                                              0., 0., 0., 0., 0., 0.,
+                                              0., 0.,
+                                              0., 0.,
+                                              0., 0.,
+                                              0., 0.,
+                                              0., 0.,
+                                              0., 0.,
+                                              0., 0.,
+                                              0., 0.,
+                                              0.,
+                                              0.]]))
 
     def valid(self, skill, team):
         return self.char.idx != skill.char.idx
 
 
 class BuffP(ProportionalBuff):
-    def __init__(self, char: int, array: torch.tensor = torch.zeros(2, Stats.length),
-                 skill_type: str = 'all'):
+    def __init__(self, char):
         """
         char: index of the characters in the team
         array: numpy array of shape 2 x stats_length with first row being the proportions, the second row being the one hot
@@ -101,37 +102,35 @@ class BuffP(ProportionalBuff):
         # print(array)
         # assert array.shape == (2, Stats.length)
         mask = torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., -100., 0., 0.,
-                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]])
-        self.func = lambda x: (x+mask) @ array[0] * array[1]
-        super().__init__(char=char, array=torch.zeros(2, Stats.length), skill_type=skill_type)
+                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]]).double()
+        array = torch.sparse_coo_tensor([[19], [13]], [0.4], (Stats.length, Stats.length)).double()
+        super().__init__(char=char)
+        self.func = lambda x:  (array @ (x+mask).T).T
 
 
 @register_char
 class RaidenShogun(Character):
     def __init__(self, weapon, enemy, artifact, level=90, constellation=0):
         super().__init__(weapon, enemy, artifact, level, constellation)
-        self.buff_P = BuffP(self.idx, torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.4, 0., 0., 0.,
-                                                     0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-                                                    [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-                                                     0., 0., 0., 0., -1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]]))
+        self.buff_P = BuffP(self)
 
-        self.buff_e = Buff_e()
+        self.buff_e = Buff_e(self)
         self.buff_cons_4 = BasicBuff(char=self,
                                      element_type='q',
-                                     array=torch.tensor([0., 0., 0.,
-                                                         0., 0., 0.,
-                                                         0., 0., 0.,
-                                                         0., 0., 0., 0., 0., 0.,
-                                                         0., 0.,
-                                                         0., 0.,
-                                                         0., 0.,
-                                                         0., 0.,
-                                                         0., 0.,
-                                                         0., 0.,
-                                                         0., 0.,
-                                                         0., 0.,
-                                                         0.,
-                                                         0.]))
+                                     array=torch.tensor([[0., 0., 0.,
+                                                          0., 0., 0.,
+                                                          0., 0., 0.,
+                                                          0., 0., 0., 0., 0., 0.,
+                                                          0., 0.,
+                                                          0., 0.,
+                                                          0., 0.,
+                                                          0., 0.,
+                                                          0., 0.,
+                                                          0., 0.,
+                                                          0., 0.,
+                                                          0., 0.,
+                                                          0.,
+                                                          0.]]))
 
         self.skill_e_init = self.skill_e = Skills(self, 210.96, 'e', 'electro')
         self.skill_e.scale = 75.6

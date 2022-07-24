@@ -63,6 +63,7 @@ class Stats:
         self.data = array
 
     def __getitem__(self, idx):
+        # print(2)
         if isinstance(idx, str):
             if idx == 'pyro':
                 return self.data[:, 15]
@@ -83,23 +84,39 @@ class Stats:
             else:
                 raise KeyError
         else:
-            return self.data.__getitem__(idx)
+            target = self.data.__getitem__(idx)
+            if len(target.shape) == 1 and target.shape[0] == self.length:
+                return target.reshape(1, self.length)
+            else:
+                return target
 
     def __setitem__(self, key, value):
-        self.data[key] = value
+        # print(1)
+        if isinstance(value, Stats):
+            self.data[key] = value.data
+        elif isinstance(value, torch.Tensor):
+            self.data[key] = value
+        elif isinstance(value, torch.DoubleTensor):
+            self.data[key] = value
 
     def __add__(self, other):
-        # print(1)
-        return Stats(self.data + other)
+        if isinstance(other, Stats):
+            return Stats(self.data + other.data)
+        elif isinstance(other, torch.Tensor):
+            return Stats(self.data + other)
+        elif isinstance(other, torch.DoubleTensor):
+            return Stats(self.data + other)
 
     def __radd__(self, other):
-        # print('-----------------------------------------------')
-        # print(self.data)
-        # print(other)
-        return Stats(self.data + other)
+        if isinstance(other, Stats):
+            return Stats(self.data + other.data)
+        elif isinstance(other, torch.Tensor):
+            return Stats(self.data + other)
+        elif isinstance(other, torch.DoubleTensor):
+            return Stats(self.data + other)
 
     def __str__(self):
-        return self.data.__str__()
+        return self.data.numpy().__str__()
 
     def copy(self):
         return Stats(torch.clone(self.data))
@@ -107,10 +124,26 @@ class Stats:
     def sum(self):
         self.data = np.sum(self.data, axis=0).reshape((1, STATS_LENGTH))
 
+    def atk(self):
+        assert self.data.shape[0] == 1
+        return self.data[:, 0] * (1 + self.data[:, 2]/100) + self.data[:, 1]
+
+    def additional(self):
+        assert self.data.shape[0] == 1
+        return self.data[:, 32]
+
+    def critical(self):
+        assert self.data.shape[0] == 1
+        return 1 + (self.data[:, 10] * self.data[:, 11] / 10000)
+
+    def dmg_bonus(self, element):
+        assert self.data.shape[0] == 1
+        return 1 + (self[element] / 100) + (self.data[:, 31] / 100)
+
 
 class Buff(Stats):
     def __init__(self, char, array: torch.tensor = torch.zeros(1, Stats.length),
-                 skill_type = 'all', element_type='all'):
+                 skill_type='all', element_type='all'):
         """
         char: index of the characters in the team
         array: numpy array of shape n x stats_length with each row being the values of the buff
@@ -125,6 +158,9 @@ class Buff(Stats):
         self.skill_type = skill_type
         self.element_type = element_type
 
+    def __str__(self):
+        return f"Character: {type(self.char).__name__}\nBuff: {type(self).__name__}\n" + f"Value:\n  {self.data.numpy()}\n"
+
     def valid(self, skill, team):
         return True
 
@@ -137,7 +173,7 @@ class BasicBuff(Buff):
     This buff will bonus characters without condition
     """
     def __init__(self, char, array: torch.tensor = torch.zeros(1, Stats.length),
-                 skill_type = 'all', element_type='all'):
+                 skill_type='all', element_type='all'):
         """
         char: index of the characters in the team
         array: numpy array of shape n x stats_length with each row being the values of the buff
@@ -147,7 +183,7 @@ class BasicBuff(Buff):
             all, pyro,  hydro, electro, anemo, cryo, geo, dendro, physical
         """
         # print(array)
-        super().__init__(char, array, skill_type, )
+        super().__init__(char, array, skill_type=skill_type, element_type=element_type)
 
 
 class ProportionalBuff(Buff):
@@ -155,7 +191,7 @@ class ProportionalBuff(Buff):
     This buff will bonus characters without condition
     """
     def __init__(self, char, array: torch.tensor = torch.zeros(Stats.length, Stats.length),
-                 skill_type = 'all', element_type='all'):
+                 skill_type='all', element_type='all'):
         """
         char: index of the characters in the team
         array: numpy array of shape 2 x stats_length with first row being the proportions, the second row being the one hot
@@ -166,9 +202,8 @@ class ProportionalBuff(Buff):
             all, pyro,  hydro, electro, anemo, cryo, geo, physical
         """
         # print(array)
-        assert array.shape == (2, Stats.length)
-        self.func = lambda x:  array @ x
-        super().__init__(char=char, skill_type=skill_type)
+        self.func = lambda x: (array @ x.T).T
+        super().__init__(char=char, skill_type=skill_type, element_type=element_type)
 
     def load_buff(self, stats):
         """
@@ -176,10 +211,17 @@ class ProportionalBuff(Buff):
 
         stats: numpy array of team stats with shape 4 x stats_length
         """
-        stats = torch.clone(stats[self.char])
-        stats[:, [1, 4, 7]] += (1 + stats[:, [2, 5, 8]] / 100) * stats[:, [0, 3, 6]]
-        stats[:, [2, 5, 8]] = 0
-        self.data = self.func(stats)
+        stats = torch.clone(stats[self.char.idx])
+        # stats[:, [1, 4, 7]] += (1 + stats[:, [2, 5, 8]] / 100) * stats[:, [0, 3, 6]]
+        # stats[:, [2, 5, 8]] = 0
+
+        # mask = torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., -100., 0., 0.,
+        #                       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]])
+        # a = stats.data + mask
+        # print(a)
+
+        self.data = self.func(stats.data)
+        # print(self.data.shape)
 
 
 class Infusion:
@@ -188,8 +230,8 @@ class Infusion:
         skill_type_from: the skill type to convert
         """
         self.char = char
-        self.skill_type_from = skill_infused.keys()
-        self.skill_infused = skill_infused
+        self.skill_types_from = skill_infused.keys()
+        self.skills_infused = skill_infused
 
 
 class Reaction:
@@ -285,7 +327,7 @@ class Skills:
 
         if buff.skill_type == 'all':
             correct_skill = True
-        elif buff.skill_type == self.skill_type:
+        elif self.skill_type in buff.skill_type:
             correct_skill = True
 
         if buff.valid(self, team):
@@ -296,9 +338,10 @@ class Skills:
         elif self.element_type in buff.element_type:
             correct_element = True
 
+        # print(correct_validation, correct_skill, correct_element)
         return correct_validation and correct_skill and correct_element
 
-    def buff_skill(self, team, basic_buffs: {BasicBuff: {}}, proportion_buffs: {ProportionalBuff: {}}):
+    def buff_skill(self, team, basic_buffs, proportion_buffs):
         """
         This method will check and update all the buffs of a skill, and changed the team stats to buffed stats
 
@@ -307,19 +350,21 @@ class Skills:
 
         """
 
-        char = team[self.char.idx]
-
-        for buff in char.weapon.permanent_buffs + char.artifact.permanent_buffs:
-            if isinstance(buff, ProportionalBuff):
-                proportion_buffs.append(buff)
+        # for buff in self.char.weapon.permanent_buffs + self.char.artifact.permanent_buffs:
+        #     if isinstance(buff, ProportionalBuff):
+        #         proportion_buffs.append(buff)
 
         for buff in basic_buffs:
+            # print(basic_buffs)
+            # print(buff)
             if self.buff_valid(buff, team):
                 team.add_basic_buff(buff, self.char.idx)
 
         for buff in proportion_buffs:
+            # print(buff)
             if self.buff_valid(buff, team):
-                team.add_basic_buff(buff, self.char.idx)
+                team.add_proportional_buff(buff, self.char.idx)
+                # print(buff)
 
     def debuff_enemy(self, enemy, debuffs):
         for debuff in debuffs:
@@ -342,26 +387,26 @@ class Skills:
         reaction_factor = 1.
         if infusion:
             if self.char.idx == infusion.char.idx and self.skill_type in infusion.skill_types_from:
-                return infusion.skills_infused[self.skill_type].dmage(team, enemy, buffs, reaction)
-        else:
-            self.buff_skill(team, buffs[0], buffs[1])
-            self.debuff_enemy(enemy, buffs[2])
-            c_idx = self.char.idx
-            stats = team[c_idx]
-            dmg = self.calculate(stats, enemy)
-            team.init_stats()
-            enemy.init_stats()
-            return dmg * reaction_factor
+                return infusion.skills_infused[self.skill_type].damage(team, enemy, buffs, reaction)
+        self.buff_skill(team, buffs[0], buffs[1] + team.permanent_prop_buffs[self.char.idx])
+        self.debuff_enemy(enemy, buffs[2])
+        c_idx = self.char.idx
+        stats = team.get_stats(c_idx)
+        # print(stats)
+        dmg = self.calculate(stats, enemy)
+        team.init_stats()
+        enemy.init_stats()
+        return dmg * reaction_factor
 
     def calculate(self, stats, enemy):
         """
         stats:
         """
         scale = self.scale
-        atk = stats[0] * (1 + stats[2]/100) + stats[1]
-        additional = stats[32]
-        critical = 1 + (stats[9] * stats[10] / 10000)
-        dmg_bonus = 1 + (stats[self.element_type] / 100) + (stats[31] / 100)
+        atk = stats.atk()
+        additional = stats.additional()
+        critical = stats.critical()
+        dmg_bonus = stats.dmg_bonus(self.element_type)
         resistance = enemy[self.element_type]
         if resistance < 0:
             resistance = 1 - resistance/200
@@ -369,9 +414,13 @@ class Skills:
             resistance = 1 / (1 + 4 * resistance/100)
         else:
             resistance = 1 - resistance/100
-        defence = enemy[1] * (1 - enemy[11] / 100)
-
-        return damage(scale, atk, additional, critical, dmg_bonus, resistance, defence)
+        defence = enemy[:, 1] * (1 - enemy[:, 11] / 100)
+        def_factor = (1 + self.char.level/100) * 500 / (defence * (1 + enemy.level/100) + (1 + self.char.level/100) * 500)
+        print(f"Scale: {scale}\nAttack: {atk.item()}\nAdditional: {additional.item()}\n" +
+              f"Critical: {critical.item()}\nDamage Bonus: {dmg_bonus.item()}\n" +
+              f"Resistance: {resistance[0]}\nDefence: {def_factor.item()}\n")
+        # print(stats)
+        return (scale/100 * atk + additional) * critical * dmg_bonus * resistance * def_factor
 
 
 class PolySkills:
@@ -386,7 +435,7 @@ class PolySkills:
         dmg = 0
         if infusion:
             if self.char.idx == infusion.char.idx and self.skill_type in infusion.skill_types_from:
-                return infusion.skills_infused[self.skill_type].dmage(team, enemy, buffs, reaction, strike)
+                return infusion.skills_infused[self.skill_type].damage(team, enemy, buffs, reaction, strike=strike)
         else:
             for i in range(strike):
                 dmg += self.skills[i % self.strike_length].damage(team, enemy, buffs, reaction, infusion)
@@ -397,6 +446,4 @@ class TransformativeReaction(Reaction, Skills):
     pass
 
 
-def damage(scale, atk, additional, critical, dmg_bonus, resistance, defence):
-    return (scale * atk + additional) * critical * dmg_bonus * resistance * defence
 

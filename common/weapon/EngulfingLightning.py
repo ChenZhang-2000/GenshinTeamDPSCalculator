@@ -1,12 +1,12 @@
 import numpy as np
+import torch
 
 from .base_weapon import register_weapon, Weapon
 from common.stats import Stats, Buff, BasicBuff, ProportionalBuff
 
 
 class ECtoATK(ProportionalBuff):
-    def __init__(self, char: int, array: np.array = np.zeros((2, Stats.length)),
-                 skill_type: str = 'all', field_type: str = 'all', element_type = 'all'):
+    def __init__(self, char):
         """
         char: index of the characters in the team
         array: numpy array of shape 2 x stats_length with first row being the proportions, the second row being the one hot
@@ -18,10 +18,11 @@ class ECtoATK(ProportionalBuff):
         """
         # print(array)
         # assert array.shape == (2, Stats.length)
-        mask = np.array([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., -100.,
-                          0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]])
-        self.func = lambda x: min(80, (x+mask) @ array[0]) * array[1]
-        super().__init__(char=char, array=np.zeros((2, Stats.length)), skill_type=skill_type, field_type=field_type)
+        mask = torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., -100., 0, 0, 0,
+                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]]).double()
+        array = torch.sparse_coo_tensor([[2], [13]], [0.28], (Stats.length, Stats.length)).double()
+        super().__init__(char=char)
+        self.func = lambda x: (array @ (x+mask).T).T
 
 
 @register_weapon
@@ -29,12 +30,10 @@ class EngulfingLightning(Weapon):
     def __init__(self):
         super().__init__()
 
-        self.permanent_buffs.append(ECtoATK(self.char_idx,
-                                            np.array([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.28, 0., 0.,
-                                                       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-                                                      [0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-                                                       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]])))
+    def init_char(self, char):
+        self.char = char
+        self.permanent_buffs.append(ECtoATK(self.char))
 
-        self.partial_buffs.append(BasicBuff(self.char_idx,
-                                            np.array([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 30, 0., 0., 0.,
-                                                       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]])))
+        self.buffs.append(BasicBuff(self.char,
+                                    torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 30, 0., 0., 0.,
+                                                   0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]])))

@@ -1,5 +1,4 @@
 import json
-import numpy as np
 import torch
 
 from common.stats import Stats, Buff, BasicBuff, ProportionalBuff, STATS_LENGTH
@@ -20,38 +19,40 @@ def register_artifact(cls):
 class Artifact(object):
     def __init__(self, char_idx):
         self.char_idx = char_idx
-        self.two_effect = [[BasicBuff, 'permanent']]
-        self.four_effect = [[BasicBuff, 'permanent']]
+        self.two_effect = []
+        self.four_effect = []
 
 
 class ArtifactSet(object):
-    def __init__(self, stats: np.array = torch.zeros(1, STATS_LENGTH),
+    def __init__(self, stats: torch.tensor = torch.zeros(1, STATS_LENGTH),
                  two_set: type = Artifact, four_set: type = Artifact):
 
         self.two_set = two_set
         self.four_set = four_set
 
-        self.char_idx = 0
         self.stats = stats
         self.permanent_buffs = []
-        self.partial_buffs = []
+        self.buffs = []
 
     def set_stats(self, stats):
         self.stats = stats
 
-    def set_char_idx(self, idx):
-        self.char_idx = idx
-
-        t = self.two_set(idx)
-        f = self.four_set(idx)
+    def init_char(self, char):
+        self.char = char
+        t = self.two_set(char)
+        f = self.four_set(char)
 
         if self.two_set == self.four_set:
+            # print(1)
             buffs = t.two_effect + t.four_effect
         else:
+            # print(1)
             buffs = t.two_effect + f.two_effect
-
+        # print(buffs)
         for buff, buff_type in buffs:
+            # print(buff)
             if buff_type == 'permanent':
+                # print(buff)
                 self.permanent_buffs.append(buff)
             elif buff_type == 'partial':
-                self.partial_buffs.append(buff)
+                self.buffs.append(buff)

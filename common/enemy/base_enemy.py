@@ -27,21 +27,21 @@ class Enemy(Monster):
     def __getitem__(self, idx):
         if isinstance(idx, str):
             if idx == 'pyro':
-                return self.stats[2]
+                return self.stats[:, 2]
             elif idx == 'hydro':
-                return self.stats[3]
+                return self.stats[:, 3]
             elif idx == 'electro':
-                return self.stats[4]
+                return self.stats[:, 4]
             elif idx == 'cryo':
-                return self.stats[5]
+                return self.stats[:, 5]
             elif idx == 'anemo':
-                return self.stats[6]
+                return self.stats[:, 6]
             elif idx == 'geo':
-                return self.stats[7]
+                return self.stats[:, 7]
             elif idx == 'dendro':
-                return self.stats[8]
+                return self.stats[:, 8]
             elif idx == 'physical':
-                return self.stats[9]
+                return self.stats[:, 9]
             else:
                 raise KeyError
         else:

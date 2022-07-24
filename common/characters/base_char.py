@@ -2,7 +2,7 @@ import json
 import numpy as np
 import torch
 
-from common.stats import Stats, Buff, BasicBuff, ProportionalBuff, damage, Skills, PolySkills, SKILL_TYPE_MAP
+from common.stats import Stats, Buff, BasicBuff, ProportionalBuff, Skills, PolySkills, SKILL_TYPE_MAP
 
 
 CHAR_FACTORY = {}
@@ -110,7 +110,7 @@ class Character(object):
         self.skill_A = Skills(self, sum(self.scaling['A']), 'A', 'physical')
         self.skill_pl = Skills(self, sum(self.scaling['pl']), 'pl', 'physical')
         self.skill_PL_low = Skills(self, self.scaling['PL'][0], 'PL_low', 'physical')
-        self.skill_PL_high = Skills(self, self.scaling['A'][1], 'PL_high', 'physical')
+        self.skill_PL_high = Skills(self, self.scaling['PL'][1], 'PL_high', 'physical')
         self.skill_e = Skills(self, sum(self.scaling['e']), 'e', self.element)
         self.skill_E = Skills(self, sum(self.scaling['E']), 'E', self.element)
         self.skill_q = Skills(self, sum(self.scaling['q']), 'q', self.element)

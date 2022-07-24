@@ -1,12 +1,11 @@
-import numpy as np
+import torch
 
 from .base_artifact import register_artifact, Artifact
 from common.stats import Stats, Buff, BasicBuff, ProportionalBuff
 
 
 class ECtoDB(ProportionalBuff):
-    def __init__(self, char: int, array: np.array = np.zeros((2, Stats.length)),
-                 skill_type: str = 'all', field_type: str = 'all', element_type = 'all'):
+    def __init__(self, char: int, array: torch.tensor = torch.zeros((2, Stats.length)), skill_type='all'):
         """
         char: index of the characters in the team
         array: numpy array of shape 2 x stats_length with first row being the proportions, the second row being the one hot
@@ -18,24 +17,21 @@ class ECtoDB(ProportionalBuff):
         """
         # print(array)
         # assert array.shape == (2, Stats.length)
-        self.func = lambda x: min(75, x @ array[0]) * array[1]
-        super().__init__(char=char, array=np.zeros((2, Stats.length), skill_type=skill_type, field_type=field_type))
+        super().__init__(char=char, array=array, skill_type=skill_type)
+        self.func = lambda x: (array @ x.T).T
 
 
 @register_artifact
 class SeveredFate(Artifact):
-    def __init__(self, char_idx):
-        super().__init__(char_idx)
+    def __init__(self, char):
+        super().__init__(char)
 
-        self.two_effect.append([BasicBuff(char_idx,
-                                          np.array([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 20, 0.,
-                                                     0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]])),
-                                'permanent'])
+        self.two_effect.append((BasicBuff(char,
+                                          torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 20, 0.,
+                                                     0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]])),
+                                'permanent'))
 
-        self.four_effect.append([ECtoDB(char_idx,
-                                        np.array([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.25, 0.,
-                                                   0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-                                                  [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-                                                   1., 0., 1., 0., 1., 0., 1., 0., 1., 0., 1., 0., 1., 0., 0.]]),
-                                        skill_type='q'),
-                                 'partial'])
+        self.four_effect.append((ECtoDB(char,
+                                        torch.sparse_coo_tensor([[31], [13]], [0.25], (Stats.length, Stats.length)),
+                                        skill_type={'q'}),
+                                 'permanent'))

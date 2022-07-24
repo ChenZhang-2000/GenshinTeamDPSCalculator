@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from common.characters.base_char import Character
-from common.stats import BasicBuff, ProportionalBuff
+from common.stats import BasicBuff, ProportionalBuff, Stats
 
 
 class Team:
@@ -19,32 +19,45 @@ class Team:
         self.on_field = 0
         self.permanent_prop_buffs = tuple([] for i in chars)
         for i, char in enumerate(chars):
+            char.weapon.init_char(char)
+            char.artifact.init_char(char)
             for b in char.weapon.permanent_buffs + char.artifact.permanent_buffs:
+
                 if isinstance(b, BasicBuff):
+                    # print(b)
                     char.stats += b
                 elif isinstance(b, ProportionalBuff):
+                    # print(b)
                     self.permanent_prop_buffs[i].append(b)
                 else:
+                    # print(b)
+                    # pass
                     raise TypeError
         self.num_chars = len(chars)
-        self.stats = torch.stack(list(map(lambda c: c.stats.data.flatten(), self.chars)))
-        self._static_stats = torch.clone(self.stats)
-        self._dynamic_stats = torch.clone(self.stats)
+        self.stats = Stats(torch.stack(list(map(lambda c: c.stats.data.flatten(), self.chars))))
+        self._static_stats = Stats(torch.clone(self.stats.data))
+        self._dynamic_stats = Stats(torch.clone(self.stats.data))
 
     def __getitem__(self, item):
         return self.chars[item]
 
+    def get_stats(self, idx):
+        return Stats(self._dynamic_stats[idx])
+
     def add_basic_buff(self, buff, c_idx):
-        self._static_stats[c_idx] += buff
-        self._dynamic_stats[c_idx] += buff
+        # print(self._static_stats)
+        # print(len(self._static_stats[c_idx].shape))
+        # print(buff)
+        self._static_stats[c_idx] += buff.data
+        self._dynamic_stats[c_idx] += buff.data
 
     def add_proportional_buff(self, buff, c_idx):
         buff.load_buff(self._static_stats)
-        self._dynamic_stats[c_idx] += buff
+        self._dynamic_stats[c_idx] += buff.data
 
     def init_stats(self):
-        self._static_stats = torch.clone(self.stats)
-        self._dynamic_stats = torch.clone(self.stats)
+        self._static_stats = Stats(torch.clone(self.stats.data))
+        self._dynamic_stats = Stats(torch.clone(self.stats.data))
 
 
 class Model:

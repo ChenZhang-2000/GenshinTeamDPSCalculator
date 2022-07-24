@@ -1,5 +1,5 @@
 import json
-import numpy as np
+import torch
 
 from common.stats import Stats, Buff, BasicBuff, ProportionalBuff
 
@@ -20,10 +20,9 @@ class Weapon(object):
     def __init__(self):
         data = json.load(open(f"common\\weapon\\stats\\{self.__class__.__name__}.json"))
 
-        self.char_idx = 0
-        self.stats = Stats(np.array(data['stats']).reshape(1, Stats.length))
+        self.stats = Stats(torch.tensor(data['stats']).reshape(1, Stats.length))
         self.permanent_buffs = []
-        self.partial_buffs = []
+        self.buffs = []
 
-    def set_char_idx(self, idx):
-        self.char_idx = idx
+    def init_char(self, char):
+        self.char = char

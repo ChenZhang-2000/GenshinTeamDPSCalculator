@@ -11,17 +11,59 @@ from common.weapon import WEAPON_FACTORY
 
 if __name__ == "__main__":
     # main()
-    artifact = ArtifactSet(two_set=ARTIFACT_FACTORY['SeveredFate'],
+    artifact = ArtifactSet(torch.tensor([[0., 311., 46.6,
+                                          0., 0., 0,
+                                          0., 4780., 0,
+                                          0, 65, 90., 0., 51.8, 0.,
+                                          0., 0.,
+                                          0., 0.,
+                                          0., 0.,
+                                          0., 0.,
+                                          0., 0.,
+                                          0., 0.,
+                                          0., 0.,
+                                          0., 0.,
+                                          0., 0.]]),
+                           two_set=ARTIFACT_FACTORY['SeveredFate'],
                            four_set=ARTIFACT_FACTORY['SeveredFate'])
-    artifact.set_stats(torch.tensor([[0., 311+39., 4.1+46.6, 0., 21+16+21., 7.3+16, 0., 4780., 5.8, 42., 66.1,
-                                      80., 0., 66.7, 0., 0., 0., 0., 0., 0., 0., 0.,
-                                      0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]]))
 
-    raiden = CHAR_FACTORY['RaidenShogun'](WEAPON_FACTORY['EngulfingLightning'](),
-                                          ENEMY_FACTORY['Hilichurl'](),
-                                          artifact)
+    hilichurl = ENEMY_FACTORY['Hilichurl'](90)
+
+    el = WEAPON_FACTORY['EngulfingLightning']()
+
+    raiden = CHAR_FACTORY['RaidenShogun'](el, hilichurl, artifact)
 
     team = Team(raiden)
+
+    raiden.buff_e.update(90)
+
+    # print(raiden.idx, team.on_field)
+
+    # print(raiden.infusion.skill_types_from)
+    q_dmg = raiden.skill_q.damage(team,
+                                  hilichurl,
+                                  ([raiden.buff_e] + el.buffs,
+                                   [raiden.buff_P],
+                                   []),
+                                  None,
+                                  raiden.infusion).item()
+    # a_dmg = raiden.skill_a.damage(team,
+    #                               hilichurl,
+    #                               ([raiden.buff_e] + el.buffs,
+    #                                [raiden.buff_P],
+    #                                []),
+    #                               None,
+    #                               raiden.infusion,
+    #                               strike=1).item()
+    # A_dmg = raiden.skill_A.damage(team,
+    #                               hilichurl,
+    #                               ([raiden.buff_e] + el.buffs,
+    #                                [raiden.buff_P],
+    #                                []),
+    #                               None,
+    #                               raiden.infusion).item()
+    print(f"Q Damage: {q_dmg}")
+    # print(f"Total Damage: {q_dmg + a_dmg*5 + A_dmg*5}")
 
     # print(raiden.stats.data)
 
