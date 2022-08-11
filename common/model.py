@@ -152,10 +152,10 @@ class Model:
         #                          OrderedDict(sorted(infusions.items(), key=lambda x: infusions[x])))
 
     def validation(self):
-        for buff in self.buffs:
-            buff_start_time, buff_end_time = self.buffs[buff]
-            for skill in self.skills:
-                skill_start_time, skill_end_time, _, _ = self.skills[skill]
+        for i, buff in self.buffs_data['buff'].iteritems():
+            buff_start_time, buff_end_time = self.buffs_data['buff'][i]
+            for j, skill in self.skills_data['skills'].iteritems():
+                skill_start_time, skill_end_time, _, _ = self.skills_data['skill'][j]
                 if skill_start_time < buff_start_time < skill_end_time:
                     skill_name = skill.__class__.__name__
                     skill_char_name = skill.char.__class__.__name__
@@ -168,6 +168,23 @@ class Model:
                     buff_name = buff.__class__.__name__
                     buff_char_name = buff.__class__.__name__
                     raise InvalidSkillTime(f"Buff {buff_name} of Character {buff_char_name} ended during Skill {skill_name} of Character {skill_char_name}")
+
+        for i, infusion in self.infusions_data['infusion'].iteritems():
+            infusion_start_time, infusion_end_time = self.infusions_data['infusion'][i]
+            for j, skill in self.skills_data['skills'].iteritems():
+                skill_start_time, skill_end_time, _, _ = self.skills_data['skill'][j]
+                if skill_start_time < infusion_start_time < skill_end_time:
+                    skill_name = skill.__class__.__name__
+                    skill_char_name = skill.char.__class__.__name__
+                    infusion_name = infusion.__class__.__name__
+                    infusion_char_name = infusion.__class__.__name__
+                    raise InvalidSkillTime(f"Infusion {infusion_name} of Character {infusion_char_name} started during Skill {skill_name} of Character {skill_char_name}")
+                elif skill_start_time < infusion_end_time < skill_end_time:
+                    skill_name = skill.__class__.__name__
+                    skill_char_name = skill.char.__class__.__name__
+                    infusion_name = infusion.__class__.__name__
+                    infusion_char_name = infusion.__class__.__name__
+                    raise InvalidSkillTime(f"Infusion {infusion_name} of Character {infusion_char_name} ended during Skill {skill_name} of Character {skill_char_name}")
 
     def run(self):
         t_max = len(self.times)
