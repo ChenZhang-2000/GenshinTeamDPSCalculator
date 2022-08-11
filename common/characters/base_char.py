@@ -88,7 +88,7 @@ def register_char(cls):
 
 
 class Character(object):
-    def __init__(self, weapon, enemy, artifact, level=90, constellation=0):
+    def __init__(self, weapon, artifact, level=90, constellation=0):
         data = json.load(open(f"common\\characters\\stats\\{self.__class__.__name__}.json"))
 
         self.idx = 0
@@ -103,7 +103,6 @@ class Character(object):
         # self.on_field = 0
 
         self.weapon = weapon
-        self.enemy = enemy
         self.artifact = artifact
 
         self.skill_a = PolySkills(self, [sum(i) for i in self.scaling['a']], 'a', 'physical')
@@ -138,6 +137,15 @@ class Character(object):
         self.buff_Q = Stats()
         self.buff_p = Stats()
         self.buff_P = Stats()
+
+        self.buffs = {"a": self.buff_a,
+                      "A": self.buff_A,
+                      "e": self.buff_e,
+                      "E": self.buff_E,
+                      "q": self.buff_q,
+                      "Q": self.buff_Q,
+                      "p": self.buff_p,
+                      "P": self.buff_P}
 
     def set_idx(self, idx):
         self.idx = idx
@@ -247,8 +255,8 @@ class Character(object):
 if __name__ == "__main__":
     @register_char
     class RaidenShogun(Character):
-        def __init__(self, weapon, enemy):
-            super().__init__(weapon, enemy)
+        def __init__(self, weapon):
+            super().__init__(weapon)
 
     # char = RaidenShogun()
     pass

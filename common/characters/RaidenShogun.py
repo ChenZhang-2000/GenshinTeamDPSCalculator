@@ -67,7 +67,7 @@ class Buff_e(BasicBuff):
 
 class BuffConstellation4(BasicBuff):
     def __init__(self, char):
-        super().__init__(char=self,
+        super().__init__(char=char,
                          skill_type={'q', 'Q'},
                          array=torch.tensor([[0., 0., 30.,
                                               0., 0., 0.,
@@ -110,27 +110,27 @@ class BuffP(ProportionalBuff):
 
 @register_char
 class RaidenShogun(Character):
-    def __init__(self, weapon, enemy, artifact, level=90, constellation=0):
-        super().__init__(weapon, enemy, artifact, level, constellation)
+    def __init__(self, weapon, artifact, level=90, constellation=0):
+        super().__init__(weapon, artifact, level, constellation)
         self.buff_P = BuffP(self)
 
         self.buff_e = Buff_e(self)
-        self.buff_cons_4 = BasicBuff(char=self,
-                                     element_type='q',
-                                     array=torch.tensor([[0., 0., 0.,
-                                                          0., 0., 0.,
-                                                          0., 0., 0.,
-                                                          0., 0., 0., 0., 0., 0.,
-                                                          0., 0.,
-                                                          0., 0.,
-                                                          0., 0.,
-                                                          0., 0.,
-                                                          0., 0.,
-                                                          0., 0.,
-                                                          0., 0.,
-                                                          0., 0.,
-                                                          0.,
-                                                          0.]]))
+        self.buff_c4 = BasicBuff(char=self,
+                                 element_type='q',
+                                 array=torch.tensor([[0., 0., 0.,
+                                                      0., 0., 0.,
+                                                      0., 0., 0.,
+                                                      0., 0., 0., 0., 0., 0.,
+                                                      0., 0.,
+                                                      0., 0.,
+                                                      0., 0.,
+                                                      0., 0.,
+                                                      0., 0.,
+                                                      0., 0.,
+                                                      0., 0.,
+                                                      0., 0.,
+                                                      0.,
+                                                      0.]]))
 
         self.skill_e_init = self.skill_e = Skills(self, 210.96, 'e', 'electro')
         self.skill_e.scale = 75.6
@@ -143,14 +143,21 @@ class RaidenShogun(Character):
         #                                 'PL_low': Skills(self, sum(self.scaling['other'][7][0]), 'PL_low', 'electro'),
         #                                 'PL_high': Skills(self, sum(self.scaling['other'][7][1]), 'PL_high', 'electro')})
 
-        self.skills = [self.skill_a, self.skill_A,
-                       self.skill_pl, self.skill_PL_low, self.skill_PL_high,
-                       self.skill_e_init, self.skill_e,
-                       self.skill_q]
+        self.skills = {"a": self.skill_a,
+                       "A": self.skill_A,
+                       "pl": self.skill_pl,
+                       "PL_low": self.skill_PL_low,
+                       "PL_high": self.skill_PL_high,
+                       "e": self.skill_e,
+                       "E": self.skill_E,
+                       "q": self.skill_q}
+
+        self.buffs = {"e": self.buff_e,
+                      "P": self.buff_P}
 
     def constellation_effect(self, *args, **kwargs):
         if self.constellation >= 2:
-            for skill in [self.skill_q, *self.infusion.skill_infused.keys()]:
+            for skill in [self.skill_q, * self.infusion.skill_infused.keys()]:
                 skill.calculate = calculate
         if self.constellation >= 3:
             self.skill_q.scale += 130.26
@@ -162,7 +169,7 @@ class RaidenShogun(Character):
             self.infusion.skill_infused['PL_low'].scale += 53.52
             self.infusion.skill_infused['PL_high'].scale += 66.84
         if self.constellation >= 4:
-            pass
+            self.buffs['c4'] = self.buff_c4
         if self.constellation >= 5:
             self.skill_e_init.scale += 38.09
             self.skill_e.scale += 13.65

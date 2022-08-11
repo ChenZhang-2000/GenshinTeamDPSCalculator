@@ -422,6 +422,9 @@ class Skills:
         # print(stats)
         return (scale/100 * atk + additional) * critical * dmg_bonus * resistance * def_factor
 
+    def update(self, *args, **kwargs):
+        pass
+
 
 class PolySkills:
     def __init__(self, char, scales, skill_type, element_type):

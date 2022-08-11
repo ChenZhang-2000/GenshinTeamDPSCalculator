@@ -1,8 +1,20 @@
+from collections import defaultdict, OrderedDict
+
 import numpy as np
+import pandas as pd
 import torch
+from torch.nn.functional import one_hot
 
 from common.characters.base_char import Character
-from common.stats import BasicBuff, ProportionalBuff, Stats
+from common.stats import BasicBuff, ProportionalBuff, Stats, Debuff
+
+
+class InvalidModel(Exception):
+    pass
+
+
+class InvalidSkillTime(InvalidModel):
+    pass
 
 
 class Team:
@@ -61,90 +73,147 @@ class Team:
 
 
 class Model:
-    def __init__(self, chars, skills, skill_args, buffs,
-                 time: np.array, on_field: np.array, action: (np.array, np.array),
-                 reaction: np.array, buffs_coverage: (np.array, np.array)):
+    def __init__(self, team, skills, enemy, buffs, infusions):
         """
-        data: 2d numpy array with 8 x number of the timestamps
-            example:
-            time stamp         1  2  3  4  5  6       # time argument
+        Arguments
 
-            on field char      0  2  3  3  1  0       # on_field argument
+        team:     Team object
+        skills:   {skill: (start_time, end_time, reaction, kwarg={})}
+        enemy:    Enemy object
+        buffs:    {buff: (start_time, end_time)}
+        infusions: {infusion: (start_time, end_time)}
 
-            0: RaidenShogun    2  NaN  NaN  NaN  NaN  0       # skill argument
-            1: KujouSara       NaN  NaN  NaN  0  3  NaN
-            2: Bennett         NaN  4  0  NaN  NaN  0
-            3: Kazuha          NaN  NaN  3  4  0  NaN
+        ===========
 
-            4: Reaction        0  1  2  2  0  1       # reaction argument
+        Parameters
 
-            5: Kazuha          0  0  1  1  1  1       # buffs argument
+        team:           Team object
+        enemy:          Enemy object
 
+        skills_data:    pandas DataFrame object storing information of skills
+        buffs_data:     pandas DataFrame object storing information of buffs
+        infusions_data: pandas DataFrame object storing information of infusions
 
-            the first row is the time stamp in second
-            the second row is the index of the character that is on field
-            the third to the sixth row is the skills that character used
+        time:           the list of the timing
+        inv_time:       a dict to map timing to its index
+
+        skills_mat:     time matrix for skills in which one is filled if skill exists on that time, otherwise zero
+        buffs_mat:      time matrix for buffs in which one is filled if buff exists on that time, otherwise zero
+        infusions_mat:  time matrix for infusions in which one is filled if infusion exists on that time, otherwise zero
+
+        [[0, 1, 1, 1, 0, 0, 0]  this row represents that the skill/buff/infusion starts at time 1 and ends at time 4
+         [1, 1, 1, 0, 0, 0, 0]  this row represents that the skill/buff/infusion starts at time 0 and ends at time 3
+         [0, 1, 1, 1, 1, 1, 1]] this row represents that the skill/buff/infusion starts at time 1 and ends at time 7
+
         """
-        self.chars = chars
-        '''
-        [RaidenShogun, KujouSara, Bennett, Kazuha]
-        '''
-        self.skills = skills
-        '''
-        [[RaidenShogun.a, RaidenShogun.A, RaidenShogun.e], 
-         [KujouSara.a, KujouSara.A, KujouSara.e], 
-         [Bennett.a, Bennett.A, Bennett.e], 
-         [Kazuha.a, Kazuha.A, Kazuha.e]]
-        '''
-        self.skill_args = skill_args
-        '''
-        [[[element], [], []], 
-         [[element], [], []], 
-         [[element], [], []], 
-         [[element], [], []]]
-        '''
-        self.buffs = buffs
-        '''
-        [[RaidenShogun.buff_p, RaidenShogun.buff_P], 
-         [KujouSara.buff_p, KujouSara.buff_P], 
-         [Bennett.buff_p, Bennett.buff_P], 
-         [Kazuha.buff_p, Kazuha.buff_P]]
-        '''
+        self.team = team
+        self.enemy = enemy
 
-        self.time = time
-        self.on_field = on_field
+        self.skills_data = pd.DataFrame([[skill, *(skills[skill])] for skill in skills.keys()],
+                                        columns=['skill', 'start_time', 'end_time', 'reaction', 'kwarg'])
+        self.buffs_data = pd.DataFrame([[buff, *(buffs[buff])] for buff in buffs.keys()],
+                                       columns=['buff', 'start_time', 'end_time'])
+        self.infusions_data = pd.DataFrame([[infusion, *(infusions[infusion])] for infusion in infusions.keys()],
+                                           columns=['infusion', 'start_time', 'end_time'])
 
-        self.action_owner, self.action = action
-        self.buffs_owner, self.buffs_coverage = buffs_coverage
-        self.reaction = reaction
+        self.times = sorted(list(set(i[j][k] for i in (skills, buffs, infusions) for j in i for k in [0, 1])))
+        self.inv_time = {time: i for i, time in enumerate(self.times)}
 
-    # def mask(self):
-    #     mask = np.zeros(self.skills.shape)
-    #     for char in self.build_map:
-    #         char_skills = self.skills[char, :]
-    #         char_mask = np.zeros(char_skills.shape)
-    #         for skill in self.build_map[char]['skills']:
-    #             skill_mask = char_skills == skill
-    #             skill_mask / np.sum(skill_mask)
-    #             char_mask += (skill_mask / np.sum(skill_mask))
-    #         mask[char] += char_mask
-    #     return mask
+        self.skills_mat = np.zeros(len(self.skills_data), len(self.times), dtype=int)
 
-    def calculate(self):
-        total_dmg = 0.
-        for t in range(self.time.shape[-1]):
-            for c in range(4):
-                skill_idx = self.action[c, t]
-                if np.isnan(skill_idx):
-                    dmg = 0
-                else:
-                    buff_idx = self.buffs_coverage[:, t]
-                    buffs = (self.buffs[self.buffs_owner[b]][buff_idx[b]]
-                             for b in range(buff_idx.shape[0])
-                             if not np.isnan(buff_idx[b]))
+        self.buffs_mat = np.zeros(len(self.buffs_data), len(self.times), dtype=int)
 
-                    dmg = self.skills[c][skill_idx](
-                        *(self.skill_args[c][skill_idx]),
-                        buff=buffs)
-                total_dmg += dmg
+        self.infusions_mat = np.zeros(len(self.infusions_data), len(self.times), dtype=int)
+
+        # self.serial = defaultdict(lambda x: (defaultdict(lambda: [x, None, {}]),
+        #                                      defaultdict(lambda: x),
+        #                                      defaultdict(lambda: x)))
+
+        for i, skill in enumerate(self.skills_data["skill"]):
+            skill_start_time, skill_end_time = self.skills_data.loc[i][["start_time", "end_time"]]
+            self.skills_mat[i, self.inv_time[skill_start_time]:self.inv_time[skill_end_time]+1] = 1
+            # self.serial[skill_start_time][0][skill] = [skill_end_time, reaction, kwarg]
+
+        for i, buff in enumerate(self.buffs_data["buff"]):
+            buff_start_time, buff_end_time = self.buffs_data.loc[i][["start_time", "end_time"]]
+            self.buffs_mat[i, self.inv_time[buff_start_time]:self.inv_time[buff_end_time]+1] = 1
+            # self.serial[buff_start_time][1][buff] = buff_end_time
+
+        for i, infusion in enumerate(self.infusions_data["infusion"]):
+            infusion_start_time, infusion_end_time = self.infusions_data.loc[i][["start_time", "end_time"]]
+            self.infusions_mat[i, self.inv_time[infusion_start_time]:self.inv_time[infusion_end_time]+1] = 1
+            # self.serial[infusion_start_time][2][infusion] = infusion_end_time
+
+        # self.serial = OrderedDict(sorted(self.serial.items(), key=lambda x: x))
+        # for time in self.serial:
+        #     skills, buffs, infusions = self.serial[time]
+        #     self.serial[time] = (OrderedDict(sorted(skills.items(), key=lambda x: skills[x][0])),
+        #                          OrderedDict(sorted(buffs.items(), key=lambda x: buffs[x])),
+        #                          OrderedDict(sorted(infusions.items(), key=lambda x: infusions[x])))
+
+    def validation(self):
+        for buff in self.buffs:
+            buff_start_time, buff_end_time = self.buffs[buff]
+            for skill in self.skills:
+                skill_start_time, skill_end_time, _, _ = self.skills[skill]
+                if skill_start_time < buff_start_time < skill_end_time:
+                    skill_name = skill.__class__.__name__
+                    skill_char_name = skill.char.__class__.__name__
+                    buff_name = buff.__class__.__name__
+                    buff_char_name = buff.__class__.__name__
+                    raise InvalidSkillTime(f"Buff {buff_name} of Character {buff_char_name} started during Skill {skill_name} of Character {skill_char_name}")
+                elif skill_start_time < buff_end_time < skill_end_time:
+                    skill_name = skill.__class__.__name__
+                    skill_char_name = skill.char.__class__.__name__
+                    buff_name = buff.__class__.__name__
+                    buff_char_name = buff.__class__.__name__
+                    raise InvalidSkillTime(f"Buff {buff_name} of Character {buff_char_name} ended during Skill {skill_name} of Character {skill_char_name}")
+
+    def run(self):
+        t_max = len(self.times)
+        total_dmg = torch.zeros(t_max)
+        t_last = torch.zeros(t_max)
+        for start_time in self.times:
+
+            # one hot encoding for the time t
+            t = one_hot(torch.tensor(self.inv_time[start_time]), t_max).numpy()
+
+            # skill start at t iff skill is 1 on time t and 0 on time t-1
+            valid_skills_mask = (self.skills_mat@t) > 0
+            valid_skills_mask *= (self.skills_mat@t_last) == 0
+
+            # getting the selected time matrix and data
+            valid_skills_mat = self.skills_mat[valid_skills_mask]
+            valid_skills_data = self.skills_data.iloc[valid_skills_mask]
+
+            t_last = t
+
+            # create mask for buffs base on their type
+            basic_buffs_mask = list(map(lambda y: isinstance(y, BasicBuff), self.buffs_data['buff']))
+            proportional_buffs_mask = list(map(lambda y: isinstance(y, ProportionalBuff), self.buffs_data['buff']))
+            de_buffs_mask = list(map(lambda y: isinstance(y, Debuff), self.buffs_data['buff']))
+
+            # create mask for buffs and infusions based on time of the skills
+            valid_buffs_mask = (self.buffs_mat@valid_skills_mat.T) > 0
+            valid_infusions_mask = (self.infusions_mat@valid_skills_mat.T) > 0
+
+            # iterate over the skills start at this time
+            for idx, valid_skill in valid_skills_data.iterrows():
+
+                # mask of buffs and infusions for the skill
+                valid_buff_mask = valid_buffs_mask[:, idx]
+                valid_infusion_mask = valid_infusions_mask[:, idx]
+
+                buffs = (list(self.buffs_data['buff'][valid_buff_mask*basic_buffs_mask]),
+                         list(self.buffs_data['buff'][valid_buff_mask*proportional_buffs_mask]),
+                         list(self.buffs_data['buff'][valid_buff_mask*de_buffs_mask]))
+                infusion = self.infusions_data['infusion'][valid_infusion_mask]
+                skill = valid_skill['skill']
+
+                # calculate damages
+                dmg = skill.damage(team=self.team, enemy=self.enemy, buffs=buffs, reaction=valid_skill['reaction'],
+                                   infusion=infusion, **(valid_skill['kwarg']))
+                end_time = valid_skill['end_time']
+                total_dmg[self.inv_time[end_time]] += dmg
+
         return total_dmg
