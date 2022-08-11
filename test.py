@@ -31,7 +31,9 @@ if __name__ == "__main__":
 
     el = WEAPON_FACTORY['EngulfingLightning']()
 
-    raiden = CHAR_FACTORY['RaidenShogun'](el, hilichurl, artifact)
+    # print(type(artifact.stats))
+
+    raiden = CHAR_FACTORY['RaidenShogun'](el, artifact)
 
     team = Team(raiden)
 

@@ -96,6 +96,9 @@ class Character(object):
         self.level = level
         self.constellation = constellation
 
+        # print(type(torch.tensor(data['stats']).reshape(1, Stats.length)))
+        # print(type(weapon.stats.data))
+        # print(type(artifact.stats))
         self.stats = Stats(torch.tensor(data['stats']).reshape(1, Stats.length) + weapon.stats.data + artifact.stats.data)
         # self._team_stats = Stats(torch.zeros(4, Stats.length))
         # self.team_stats = Stats(torch.zeros(4, Stats.length))

@@ -30,11 +30,12 @@ class ArtifactSet(object):
         self.two_set = two_set
         self.four_set = four_set
 
-        self.stats = stats
+        self.stats = Stats(stats)
+        # print(type(self.stats))
         self.permanent_buffs = []
         self.buffs = []
 
-    def set_stats(self, stats):
+    def set_stats(self, stats: Stats):
         self.stats = stats
 
     def init_char(self, char):
