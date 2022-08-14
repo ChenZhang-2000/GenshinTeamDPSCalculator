@@ -119,11 +119,11 @@ class Model:
         self.times = sorted(list(set(i[j][k] for i in (skills, buffs, infusions) for j in i for k in [0, 1])))
         self.inv_time = {time: i for i, time in enumerate(self.times)}
 
-        self.skills_mat = np.zeros(len(self.skills_data), len(self.times), dtype=int)
+        self.skills_mat = np.zeros((len(self.skills_data), len(self.times)), dtype=int)
 
-        self.buffs_mat = np.zeros(len(self.buffs_data), len(self.times), dtype=int)
+        self.buffs_mat = np.zeros((len(self.buffs_data), len(self.times)), dtype=int)
 
-        self.infusions_mat = np.zeros(len(self.infusions_data), len(self.times), dtype=int)
+        self.infusions_mat = np.zeros((len(self.infusions_data), len(self.times)), dtype=int)
 
         # self.serial = defaultdict(lambda x: (defaultdict(lambda: [x, None, {}]),
         #                                      defaultdict(lambda: x),
@@ -153,9 +153,11 @@ class Model:
 
     def validation(self):
         for i, buff in self.buffs_data['buff'].iteritems():
-            buff_start_time, buff_end_time = self.buffs_data['buff'][i]
-            for j, skill in self.skills_data['skills'].iteritems():
-                skill_start_time, skill_end_time, _, _ = self.skills_data['skill'][j]
+            # print(self.buffs_data['buff'][i])
+            buff_start_time = self.buffs_data['start_time'][i]
+            buff_end_time = self.buffs_data['end_time'][i]
+            for j, skill in self.skills_data['skill'].iteritems():
+                _, skill_start_time, skill_end_time, _, _ = self.skills_data.iloc[j]
                 if skill_start_time < buff_start_time < skill_end_time:
                     skill_name = skill.__class__.__name__
                     skill_char_name = skill.char.__class__.__name__
@@ -170,9 +172,10 @@ class Model:
                     raise InvalidSkillTime(f"Buff {buff_name} of Character {buff_char_name} ended during Skill {skill_name} of Character {skill_char_name}")
 
         for i, infusion in self.infusions_data['infusion'].iteritems():
-            infusion_start_time, infusion_end_time = self.infusions_data['infusion'][i]
-            for j, skill in self.skills_data['skills'].iteritems():
-                skill_start_time, skill_end_time, _, _ = self.skills_data['skill'][j]
+            infusion_start_time = self.infusions_data['start_time'][i]
+            infusion_end_time = self.infusions_data['end_time'][i]
+            for j, skill in self.skills_data['skill'].iteritems():
+                _, skill_start_time, skill_end_time, _, _ = self.skills_data.iloc[j]
                 if skill_start_time < infusion_start_time < skill_end_time:
                     skill_name = skill.__class__.__name__
                     skill_char_name = skill.char.__class__.__name__
@@ -189,7 +192,7 @@ class Model:
     def run(self):
         t_max = len(self.times)
         total_dmg = torch.zeros(t_max)
-        t_last = torch.zeros(t_max)
+        t_last = np.zeros(t_max)
         for start_time in self.times:
 
             # one hot encoding for the time t
@@ -198,6 +201,7 @@ class Model:
             # skill start at t iff skill is 1 on time t and 0 on time t-1
             valid_skills_mask = (self.skills_mat@t) > 0
             valid_skills_mask *= (self.skills_mat@t_last) == 0
+            # print(valid_skills_mask)
 
             # getting the selected time matrix and data
             valid_skills_mat = self.skills_mat[valid_skills_mask]
@@ -212,11 +216,12 @@ class Model:
 
             # create mask for buffs and infusions based on time of the skills
             valid_buffs_mask = (self.buffs_mat@valid_skills_mat.T) > 0
+            # print(valid_buffs_mask.shape)
             valid_infusions_mask = (self.infusions_mat@valid_skills_mat.T) > 0
 
             # iterate over the skills start at this time
-            for idx, valid_skill in valid_skills_data.iterrows():
-
+            for idx, (_, valid_skill) in enumerate(valid_skills_data.iterrows()):
+                # print(idx)
                 # mask of buffs and infusions for the skill
                 valid_buff_mask = valid_buffs_mask[:, idx]
                 valid_infusion_mask = valid_infusions_mask[:, idx]
@@ -228,9 +233,14 @@ class Model:
                 skill = valid_skill['skill']
 
                 # calculate damages
+                # print(infusion)
                 dmg = skill.damage(team=self.team, enemy=self.enemy, buffs=buffs, reaction=valid_skill['reaction'],
-                                   infusion=infusion, **(valid_skill['kwarg']))
+                                   infusions=infusion, **(valid_skill['kwarg']))
                 end_time = valid_skill['end_time']
-                total_dmg[self.inv_time[end_time]] += dmg
+                # print(self.inv_time[end_time])
+                # print(total_dmg)
+                # print(total_dmg[(self.inv_time[end_time]):])
+                # print(dmg[0])
+                total_dmg[(self.inv_time[end_time]):] += dmg[0]
 
         return total_dmg

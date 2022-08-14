@@ -17,7 +17,7 @@ def register_weapon(cls):
 
 
 class Weapon(object):
-    def __init__(self):
+    def __init__(self, affix=1):
         data = json.load(open(f"common\\weapon\\stats\\{self.__class__.__name__}.json"))
 
         self.stats = Stats(torch.tensor(data['stats']).reshape(1, Stats.length))

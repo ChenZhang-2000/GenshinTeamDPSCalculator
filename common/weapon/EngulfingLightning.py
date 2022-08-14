@@ -27,8 +27,8 @@ class ECtoATK(ProportionalBuff):
 
 @register_weapon
 class EngulfingLightning(Weapon):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, affix=1):
+        super().__init__(affix)
 
     def init_char(self, char):
         self.char = char

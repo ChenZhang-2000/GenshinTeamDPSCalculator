@@ -8,6 +8,10 @@ SKILL_TYPE_MAP = {'a': 'a', 'A': 'A', 'e': 'e', 'E': 'e', 'q': 'q', 'Q': 'q',
                   'pl': 'l', 'PL_low': 'l', 'PL_high': 'l', 'p': 'o', 'P': 'o'}
 
 
+class MultipleInfusions(Exception):
+    pass
+
+
 class Stats:
     length = STATS_LENGTH
     """
@@ -370,7 +374,7 @@ class Skills:
         for debuff in debuffs:
             enemy.change_stats(debuff)
 
-    def damage(self, team, enemy, buffs: ([], [], []), reaction, infusion=None):
+    def damage(self, team, enemy, buffs: ([], [], []), reaction, infusions=None):
         """
         team: team object
         enemy: enemy object
@@ -385,9 +389,19 @@ class Skills:
 
         """
         reaction_factor = 1.
-        if infusion:
-            if self.char.idx == infusion.char.idx and self.skill_type in infusion.skill_types_from:
+        # print(infusion)
+        if not infusions is None:
+            infusion_check = lambda infusion: self.char.idx == infusion.char.idx and self.skill_type in infusion.skill_types_from
+            infusion_map = np.array(list(map(infusion_check, infusions)))
+            map_sum = np.sum(infusion_map.astype(int))
+            if map_sum > 1:
+                raise MultipleInfusions('multiple valid infusions are found')
+            elif map_sum == 0:
+                pass
+            else:
+                infusion = infusions[infusion_map.argmax()]
                 return infusion.skills_infused[self.skill_type].damage(team, enemy, buffs, reaction)
+
         self.buff_skill(team, buffs[0], buffs[1] + team.permanent_prop_buffs[self.char.idx])
         self.debuff_enemy(enemy, buffs[2])
         c_idx = self.char.idx
@@ -416,9 +430,9 @@ class Skills:
             resistance = 1 - resistance/100
         defence = enemy[:, 1] * (1 - enemy[:, 11] / 100)
         def_factor = (1 + self.char.level/100) * 500 / (defence * (1 + enemy.level/100) + (1 + self.char.level/100) * 500)
-        print(f"Scale: {scale}\nAttack: {atk.item()}\nAdditional: {additional.item()}\n" +
-              f"Critical: {critical.item()}\nDamage Bonus: {dmg_bonus.item()}\n" +
-              f"Resistance: {resistance[0]}\nDefence: {def_factor.item()}\n")
+        # print(f"Scale: {scale}\nAttack: {atk.item()}\nAdditional: {additional.item()}\n" +
+        #       f"Critical: {critical.item()}\nDamage Bonus: {dmg_bonus.item()}\n" +
+        #       f"Resistance: {resistance[0]}\nDefence: {def_factor.item()}\n")
         # print(stats)
         return (scale/100 * atk + additional) * critical * dmg_bonus * resistance * def_factor
 
@@ -434,14 +448,22 @@ class PolySkills:
         self.skill_type = skill_type
         self.element_type = element_type
 
-    def damage(self, team, enemy, buffs: ([], [], []), reaction, infusion=None, strike=1):
+    def damage(self, team, enemy, buffs: ([], [], []), reaction, infusions=None, strike=1):
         dmg = 0
-        if infusion:
-            if self.char.idx == infusion.char.idx and self.skill_type in infusion.skill_types_from:
-                return infusion.skills_infused[self.skill_type].damage(team, enemy, buffs, reaction, strike=strike)
+        if not infusions is None:
+            infusion_check = lambda infusion: self.char.idx == infusion.char.idx and self.skill_type in infusion.skill_types_from
+            infusion_map = np.array(list(map(infusion_check, infusions)))
+            map_sum = np.sum(infusion_map.astype(int))
+            if map_sum > 1:
+                raise MultipleInfusions('multiple valid infusions are found')
+            elif map_sum == 0:
+                pass
+            else:
+                infusion = infusions[infusion_map.argmax()]
+                return infusion.skills_infused[self.skill_type].damage(team, enemy, buffs, reaction)
         else:
             for i in range(strike):
-                dmg += self.skills[i % self.strike_length].damage(team, enemy, buffs, reaction, infusion)
+                dmg += self.skills[i % self.strike_length].damage(team, enemy, buffs, reaction, infusions)
             return dmg
 
 
