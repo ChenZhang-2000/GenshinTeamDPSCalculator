@@ -1,0 +1,3 @@
+name: ["名称", "Name"]
+enemy: ["怪物", "敌人", "Monster"]
+enemy_level: ["敌人等级", "怪物等级", "等级", "Monster Level", "Level"]

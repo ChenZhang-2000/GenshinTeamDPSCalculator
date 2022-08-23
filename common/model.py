@@ -109,15 +109,18 @@ class Model:
         self.team = team
         self.enemy = enemy
 
-        self.skills_data = pd.DataFrame([[skill, *(skills[skill])] for skill in skills.keys()],
-                                        columns=['skill', 'start_time', 'end_time', 'reaction', 'kwarg'])
-        self.buffs_data = pd.DataFrame([[buff, *(buffs[buff])] for buff in buffs.keys()],
-                                       columns=['buff', 'start_time', 'end_time'])
-        self.infusions_data = pd.DataFrame([[infusion, *(infusions[infusion])] for infusion in infusions.keys()],
-                                           columns=['infusion', 'start_time', 'end_time'])
+        self.skills_data = skills
+        self.buffs_data = buffs
+        self.infusions_data = infusions
 
-        self.times = sorted(list(set(i[j][k] for i in (skills, buffs, infusions) for j in i for k in [0, 1])))
+        self.times = []
+        for df in (skills, buffs, infusions):
+            for time in['start_time', 'end_time']:
+                self.times += df[time].values.tolist()
+        self.times = sorted(list(set(self.times)))
+
         self.inv_time = {time: i for i, time in enumerate(self.times)}
+        print()
 
         self.skills_mat = np.zeros((len(self.skills_data), len(self.times)), dtype=int)
 

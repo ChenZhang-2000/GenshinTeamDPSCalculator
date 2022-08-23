@@ -88,9 +88,10 @@ def register_char(cls):
 
 
 class Character(object):
-    def __init__(self, weapon, artifact, level=90, constellation=0):
+    def __init__(self, weapon, artifact, level=90, constellation=0, name='Unknown Character'):
         data = json.load(open(f"common\\characters\\stats\\{self.__class__.__name__}.json"))
 
+        self.name = name
         self.idx = 0
         self.element = data['element']
         self.level = level

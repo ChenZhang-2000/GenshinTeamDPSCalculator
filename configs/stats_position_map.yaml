@@ -1,0 +1,45 @@
+base_attack: 0
+flat_attack: 1
+percentage_attack: 2
+
+base_defence: 3
+flat_defence: 4
+percentage_defence: 5
+
+base_hp: 6
+flat_hp: 7
+percentage_hp: 8
+
+em: 9
+critical_rate: 10
+critical_damage: 11
+healing_bonus: 12
+energy_recharge: 13
+shield_strength: 14
+
+pyro_dmg_bonus: 15
+pyro_resistance: 16
+
+hydro_dmg_bonus: 17
+hydro_resistance: 18
+
+electro_dmg_bonus: 19
+electro_resistance: 20
+
+anemo_dmg_bonus: 21
+anemo_resistance: 22
+
+cyro_dmg_bonus: 23
+cyro_resistance: 24
+
+geo_dmg_bonus: 25
+geo_resistance: 26
+
+dendro_dmg_bonus: 27
+dendro_resistance: 28
+
+physical_dmg_bonus: 29
+physical_resistance: 30
+
+dmg_bonus: 31
+flat_dmg_bonus: 32

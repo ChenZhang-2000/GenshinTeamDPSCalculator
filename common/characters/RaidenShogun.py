@@ -110,8 +110,8 @@ class BuffP(ProportionalBuff):
 
 @register_char
 class RaidenShogun(Character):
-    def __init__(self, weapon, artifact, level=90, constellation=0):
-        super().__init__(weapon, artifact, level, constellation)
+    def __init__(self, weapon, artifact, level=90, constellation=0, name='Raiden Shogun'):
+        super().__init__(weapon, artifact, level, constellation, name)
         self.buff_P = BuffP(self)
 
         self.buff_e = Buff_e(self)

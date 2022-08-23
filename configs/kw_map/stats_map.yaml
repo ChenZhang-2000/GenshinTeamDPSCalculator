@@ -1,0 +1,54 @@
+name: ["名称", "Name"]
+character: ["角色", "Character"]
+character_level: ["角色等级", "等级", "Character Level", "Level"]
+character_constellation: ["角色命座", "命座", "Character Constellation", "Constellation"]
+weapon: ["武器", "Weapon"]
+weapon_affix: ["武器精炼", "精炼", "Weapon Affix", "Affix"]
+artifact_two: ["圣遗物二件套", "二件套", "Artifact Two Piece", "Two Piece"]
+artifact_four: ["圣遗物四件套", "四件套", "Artifact Four Piece", "Four Piece"]
+
+base_attack: ["基础攻击力", "基础攻击", "Base Attack", "Base ATK"]
+flat_attack: ["固定值攻击力", "固定值攻击", "Flat Attack", "Flat ATK"]
+percentage_attack: ["百分比攻击力", "百分比攻击", "Percentage Attack", "Pct ATK"]
+
+base_defence: ["基础防御力", "基础防御", "Base Defence", "Base DEF"]
+flat_defence: ["固定值防御力", "固定值防御", "Flat Defence", "Flat DEF"]
+percentage_defence: ["百分比防御力", "百分比防御", "Percentage Defence", "Pct DEF"]
+
+base_hp: ["基础生命值", "基础生命", "Base Health", "Base HP"]
+flat_hp: ["固定值生命值", "固定值生命", "Flat Health", "Flat HP"]
+percentage_hp: ["百分比生命值", "百分比生命", "Percentage Health", "Pct HP"]
+
+em: ["元素精通", "精通", "Elemental Mastery", "EM"]
+critical_rate: ["暴击率", "暴击", "爆击率", "爆击", "Critical Rate", "CR"]
+critical_damage: ["暴击伤害", "暴伤", "爆击伤害", "爆伤", "Critical Damage", "CD"]
+healing_bonus: ["治疗加成", "Healing Bonus", "HB"]
+energy_recharge: ["元素充能效率", "元素充能", "充能效率", "充能", "Energy Recharge", "ER"]
+shield_strength: ["护盾强效", "Shield Strength", "SS"]
+
+pyro_dmg_bonus: ["火元素伤害加成", "火伤", "Pyro Damage Bonus", "Pyro DMG Bonus", "Pyro DB"]
+pyro_resistance: ["火元素抗性", "火抗", "Pyro Resistance", "Pyro RI"]
+
+hydro_dmg_bonus: ["水元素伤害加成", "水伤", "Hydro Damage Bonus", "Hydro DMG Bonus", "Hydro DB"]
+hydro_resistance: ["水元素抗性", "水抗", "Hydro Resistance", "Hydro RI"]
+
+electro_dmg_bonus: ["雷元素伤害加成", "雷伤", "Electro Damage Bonus", "Electro DMG Bonus", "Electro DB"]
+electro_resistance: ["雷元素抗性", "雷抗", "Electro Resistance", "Electro RI"]
+
+anemo_dmg_bonus: ["风元素伤害加成", "风伤", "Anemo Damage Bonus", "Anemo DMG Bonus", "Anemo DB"]
+anemo_resistance: ["风元素抗性", "风抗", "Anemo Resistance", "Anemo RI"]
+
+cyro_dmg_bonus: ["冰元素伤害加成", "冰伤", "Cyro Damage Bonus", "Cyro DMG Bonus", "Cyro DB"]
+cyro_resistance: ["冰元素抗性", "冰抗", "Cyro Resistance", "Cyro RI"]
+
+geo_dmg_bonus: ["岩元素伤害加成", "岩伤", "Geo Damage Bonus", "Geo DMG Bonus", "Geo DB"]
+geo_resistance: ["岩元素抗性", "岩抗", "Geo Resistance", "Geo RI"]
+
+dendro_dmg_bonus: ["草元素伤害加成", "草伤", "Dendro Damage Bonus", "Dendro DMG Bonus", "Dendro DB"]
+dendro_resistance: ["草元素抗性", "草抗", "Dendro Resistance", "Dendro RI"]
+
+physical_dmg_bonus: ["物理伤害加成", "物伤", "Pysical Damage Bonus", "Pysical DMG Bonus", "Pysical DB"]
+physical_resistance: ["物理抗性", "物抗", "Pysical Resistance", "Pysical RI"]
+
+dmg_bonus: ["其他增伤", "增伤", "Other Damage Bonus", "Other DMG Bonus", "DMG Bonus", "Damage Bonus", "DB"]
+flat_dmg_bonus: ["造成伤害增加", "固定值伤害加成", "Flat Damage Bonus", "Flat DMG Bonus", "Flat DB"]
