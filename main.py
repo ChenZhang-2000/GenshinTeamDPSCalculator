@@ -33,5 +33,7 @@ if __name__ == "__main__":
     model.validation()
     total_dmg = model.run()
     plt.plot(model.times, total_dmg)
+    plt.xlabel('Time')
+    plt.ylabel('DMG')
     plt.show()
 
