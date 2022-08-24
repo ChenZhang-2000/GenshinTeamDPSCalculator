@@ -318,6 +318,9 @@ class Debuff(Monster):
 
 class Skills:
     def __init__(self, char, scale, skill_type, element_type):
+        self._num_calculated = 0
+        self.first_particular = False
+        self.first_skill = None
         self.char = char
         self.scale = scale
         self.skill_type = skill_type
@@ -402,15 +405,23 @@ class Skills:
                 infusion = infusions[infusion_map.argmax()]
                 return infusion.skills_infused[self.skill_type].damage(team, enemy, buffs, reaction)
 
+        # print(self.char.idx)
+        # print(stats)
+        first_dmg = 0
+        if self.first_particular and self._num_calculated == 0:
+            self._num_calculated += 1
+            first_dmg = self.first_skill.damage(team, enemy, buffs, reaction, infusions)
+
         self.buff_skill(team, buffs[0], buffs[1] + team.permanent_prop_buffs[self.char.idx])
         self.debuff_enemy(enemy, buffs[2])
         c_idx = self.char.idx
         stats = team.get_stats(c_idx)
-        # print(stats)
         dmg = self.calculate(stats, enemy)
         team.init_stats()
         enemy.init_stats()
-        return dmg * reaction_factor
+
+        self._num_calculated += 1
+        return first_dmg + dmg * reaction_factor
 
     def calculate(self, stats, enemy):
         """
@@ -433,7 +444,6 @@ class Skills:
         # print(f"Scale: {scale}\nAttack: {atk.item()}\nAdditional: {additional.item()}\n" +
         #       f"Critical: {critical.item()}\nDamage Bonus: {dmg_bonus.item()}\n" +
         #       f"Resistance: {resistance[0]}\nDefence: {def_factor.item()}\n")
-        # print(stats)
         return (scale/100 * atk + additional) * critical * dmg_bonus * resistance * def_factor
 
     def update(self, *args, **kwargs):
@@ -442,15 +452,19 @@ class Skills:
 
 class PolySkills:
     def __init__(self, char, scales, skill_type, element_type):
+        self.strike = 1
         self.char = char
         self.strike_length = len(scales)
         self.skills = [Skills(char, scale, skill_type, element_type) for scale in scales]
         self.skill_type = skill_type
         self.element_type = element_type
 
-    def damage(self, team, enemy, buffs: ([], [], []), reaction, infusions=None, strike=1):
+    def damage(self, team, enemy, buffs: ([], [], []), reaction, infusions=None):
         dmg = 0
-        if not infusions is None:
+        if not (infusions is None):
+            # for infusion in infusions:
+            #     print(self.char.idx == infusion.char.idx)
+            #     print(self.skill_type in infusion.skill_types_from)
             infusion_check = lambda infusion: self.char.idx == infusion.char.idx and self.skill_type in infusion.skill_types_from
             infusion_map = np.array(list(map(infusion_check, infusions)))
             map_sum = np.sum(infusion_map.astype(int))
@@ -460,12 +474,19 @@ class PolySkills:
                 pass
             else:
                 infusion = infusions[infusion_map.argmax()]
-                return infusion.skills_infused[self.skill_type].damage(team, enemy, buffs, reaction)
-        else:
-            for i in range(strike):
-                dmg += self.skills[i % self.strike_length].damage(team, enemy, buffs, reaction, infusions)
-            return dmg
+                target_skill = infusion.skills_infused[self.skill_type]
+                target_skill.update(strike=self.strike)
+                return target_skill.damage(team, enemy, buffs, reaction)
+        for i in range(self.strike):
+            dmg += self.skills[i % self.strike_length].damage(team, enemy, buffs, reaction, infusions)
+        return dmg
 
+    def update(self, strike, *args, **kwargs):
+        # print(strike)
+        if strike == '':
+            pass
+        else:
+            self.strike = int(strike)
 
 class TransformativeReaction(Reaction, Skills):
     pass

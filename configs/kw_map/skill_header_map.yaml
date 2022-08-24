@@ -1,0 +1,4 @@
+on_field: ["站场角色", "站场", 'On Field Character', 'On Field Characters', 'On Field']
+skill: ['技能', 'Skill', 'Skills']
+buff: ['增益效果', 'Buff', 'Buffs']
+time: ['时间', 'Time']

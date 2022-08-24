@@ -31,6 +31,7 @@ class Team:
         self.on_field = 0
         self.permanent_prop_buffs = tuple([] for i in chars)
         for i, char in enumerate(chars):
+            char.idx = i
             char.weapon.init_char(char)
             char.artifact.init_char(char)
             for b in char.weapon.permanent_buffs + char.artifact.permanent_buffs:
@@ -237,13 +238,12 @@ class Model:
 
                 # calculate damages
                 # print(infusion)
+                # print(skill)
                 dmg = skill.damage(team=self.team, enemy=self.enemy, buffs=buffs, reaction=valid_skill['reaction'],
                                    infusions=infusion, **(valid_skill['kwarg']))
                 end_time = valid_skill['end_time']
                 # print(self.inv_time[end_time])
-                # print(total_dmg)
-                # print(total_dmg[(self.inv_time[end_time]):])
-                # print(dmg[0])
+                # print(dmg)
                 total_dmg[(self.inv_time[end_time]):] += dmg[0]
 
         return total_dmg

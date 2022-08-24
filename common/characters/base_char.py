@@ -2,7 +2,8 @@ import json
 import numpy as np
 import torch
 
-from common.stats import Stats, Buff, BasicBuff, ProportionalBuff, Skills, PolySkills, SKILL_TYPE_MAP
+from . import char_stats
+from common.stats import Stats, Buff, BasicBuff, ProportionalBuff, Skills, PolySkills, SKILL_TYPE_MAP, STATS_LENGTH
 
 
 CHAR_FACTORY = {}
@@ -88,19 +89,30 @@ def register_char(cls):
 
 
 class Character(object):
-    def __init__(self, weapon, artifact, level=90, constellation=0, name='Unknown Character'):
+    def __init__(self, weapon, artifact, level=90, constellation=0, name='Unknown Character',
+                 ascension_phase=6, skill_level=(10, 10, 10)):
+        self.char_name = self.__class__.__name__
         data = json.load(open(f"common\\characters\\stats\\{self.__class__.__name__}.json"))
 
         self.name = name
         self.idx = 0
         self.element = data['element']
-        self.level = level
+        self.level = int(level)
         self.constellation = constellation
+        self.skill_level = skill_level
 
-        # print(type(torch.tensor(data['stats']).reshape(1, Stats.length)))
-        # print(type(weapon.stats.data))
-        # print(type(artifact.stats))
-        self.stats = Stats(torch.tensor(data['stats']).reshape(1, Stats.length) + weapon.stats.data + artifact.stats.data)
+        base_attributes = torch.tensor(char_stats.base_value[self.char_name]) * char_stats.level_multiplier[data["stars"]][self.level]
+        base_attributes += torch.tensor(char_stats.max_ascension_value[self.char_name]) * char_stats.ascension_value_multiplier[ascension_phase]
+        base_attribute_value = torch.zeros(STATS_LENGTH).float()
+        base_attribute_value[0] = base_attributes[1]
+        base_attribute_value[3] = base_attributes[2]
+        base_attribute_value[6] = base_attributes[0]
+        bonus_attributes = torch.tensor(data['stats']) * char_stats.ascension_bonus_multiplier[ascension_phase] * char_stats.bonus_attributes_multiplier[data["stars"]]
+
+        attributes = base_attribute_value + bonus_attributes + char_stats.base_attributes
+        # print(attributes.int())
+
+        self.stats = Stats(attributes.reshape(1, Stats.length) + weapon.stats.data + artifact.stats.data)
         # self._team_stats = Stats(torch.zeros(4, Stats.length))
         # self.team_stats = Stats(torch.zeros(4, Stats.length))
         self.scaling = data['skills']
@@ -109,17 +121,19 @@ class Character(object):
         self.weapon = weapon
         self.artifact = artifact
 
-        self.skill_a = PolySkills(self, [sum(i) for i in self.scaling['a']], 'a', 'physical')
-        self.skill_A = Skills(self, sum(self.scaling['A']), 'A', 'physical')
-        self.skill_pl = Skills(self, sum(self.scaling['pl']), 'pl', 'physical')
-        self.skill_PL_low = Skills(self, self.scaling['PL'][0], 'PL_low', 'physical')
-        self.skill_PL_high = Skills(self, self.scaling['PL'][1], 'PL_high', 'physical')
-        self.skill_e = Skills(self, sum(self.scaling['e']), 'e', self.element)
-        self.skill_E = Skills(self, sum(self.scaling['E']), 'E', self.element)
-        self.skill_q = Skills(self, sum(self.scaling['q']), 'q', self.element)
-        self.skill_Q = Skills(self, sum(self.scaling['Q']), 'Q', self.element)
-        self.skill_p = Skills(self, sum(self.scaling['p']), 'p', self.element)
-        self.skill_P = Skills(self, sum(self.scaling['P']), 'P', self.element)
+        self.skill_a = PolySkills(self, [sum(i) for i in self.scaling['a'][self.skill_level[0]]], 'a', 'physical')
+        self.skill_A = Skills(self, sum(self.scaling['A'][self.skill_level[0]]), 'A', 'physical')
+        self.skill_pl = Skills(self, sum(self.scaling['pl'][self.skill_level[0]]), 'pl', 'physical')
+        self.skill_PL_low = Skills(self, self.scaling['PL'][self.skill_level[0]][0], 'PL_low', 'physical')
+        self.skill_PL_high = Skills(self, self.scaling['PL'][self.skill_level[0]][1], 'PL_high', 'physical')
+        # print(self.scaling['e'][self.skill_level[1]])
+        self.skill_e = Skills(self, sum(self.scaling['e'][self.skill_level[1]][-1]), 'e', self.element)
+        # print(self.scaling['E'][self.skill_level[1]][-1])
+        self.skill_E = Skills(self, sum(self.scaling['E'][self.skill_level[1]][-1]), 'E', self.element)
+        self.skill_q = Skills(self, sum(self.scaling['q'][self.skill_level[2]][-1]), 'q', self.element)
+        self.skill_Q = Skills(self, sum(self.scaling['Q'][self.skill_level[2]][-1]), 'Q', self.element)
+        self.skill_p = Skills(self, sum(self.scaling['p'][-1]), 'p', self.element)
+        self.skill_P = Skills(self, sum(self.scaling['P'][-1]), 'P', self.element)
 
         self.skills = {"a": self.skill_a,
                        "A": self.skill_A,

@@ -37,6 +37,9 @@ class RaidenInfusion(Infusion):
                                 'PL_high': Skills(char, scaling[7][1]+bonus, 'PL_high', 'electro')})
         self.char.skill_q.scale += 7 * stacks
 
+    def update(self, *args, **kwargs):
+        pass
+
 
 class Buff_e(BasicBuff):
     def __init__(self, char):
@@ -61,8 +64,10 @@ class Buff_e(BasicBuff):
         # print(self.char.idx == team.on_field)
         return self.char.idx == team.on_field
 
-    def update(self, energy=80):
-        self.data[0, 31] = energy * 0.3
+    def update(self, energy=90):
+        # print(type(energy))
+        if energy != '':
+            self.data[0, 31] = int(energy) * 0.3
 
 
 class BuffConstellation4(BasicBuff):
@@ -110,8 +115,9 @@ class BuffP(ProportionalBuff):
 
 @register_char
 class RaidenShogun(Character):
-    def __init__(self, weapon, artifact, level=90, constellation=0, name='Raiden Shogun'):
-        super().__init__(weapon, artifact, level, constellation, name)
+    def __init__(self, weapon, artifact, level=90, constellation=0, name='Raiden Shogun',
+                 ascension_phase=6, skill_level=(10, 10, 10)):
+        super().__init__(weapon, artifact, level, constellation, name, ascension_phase, skill_level)
         self.buff_P = BuffP(self)
 
         self.buff_e = Buff_e(self)
@@ -132,10 +138,11 @@ class RaidenShogun(Character):
                                                       0.,
                                                       0.]]))
 
-        self.skill_e_init = self.skill_e = Skills(self, 210.96, 'e', 'electro')
-        self.skill_e.scale = 75.6
+        self.skill_e = Skills(self, self.scaling['e'][self.skill_level[1]][1][0], 'e', 'electro')
+        self.skill_e.first_skill = Skills(self, self.scaling['e'][self.skill_level[1]][0][0], 'e', 'electro')
+        self.skill_e.first_particular = True
 
-        self.infusion = RaidenInfusion(self, self.scaling['other'], 60)
+        self.infusion = RaidenInfusion(self, self.scaling['other'][self.skill_level[2]], 60)
 
         #     Infusion(self, {'a': PolySkills(self, [sum(i) for i in self.scaling['other'][:5]], 'a', 'electro'),
         #                                 'A': Skills(self, sum(self.scaling['other'][5]), 'A', 'electro'),
@@ -153,7 +160,10 @@ class RaidenShogun(Character):
                        "q": self.skill_q}
 
         self.buffs = {"e": self.buff_e,
-                      "P": self.buff_P}
+                      "P": self.buff_P,
+                      "w": self.weapon.buffs,
+                      "infusion": self.infusion,
+                      "附魔": self.infusion}
 
     def constellation_effect(self, *args, **kwargs):
         if self.constellation >= 2:
