@@ -1,3 +1,5 @@
+import types
+
 import numpy as np
 import torch
 
@@ -21,7 +23,7 @@ def calculate(self, stats, enemy):
         resistance = 1 / (1 + 4 * resistance / 100)
     else:
         resistance = 1 - resistance / 100
-    defence = enemy[1] * (1 - enemy[11] / 100) * 0.4
+    defence = enemy[:, 1] * (1 - enemy[:, 11] / 100) * 0.4
     def_factor = (1 + self.char.level/100) * 500 / (defence * (1 + enemy.level/100) + (1 + self.char.level/100) * 500)
 
     return (scale/100 * atk + additional) * critical * dmg_bonus * resistance * def_factor
@@ -29,13 +31,13 @@ def calculate(self, stats, enemy):
 
 class RaidenInfusion(Infusion):
     def __init__(self, char, scaling, stacks):
-        bonus = 1.31 * stacks
+        bonus = scaling[-1][0] * stacks
         super().__init__(char, {'a': PolySkills(char, [sum(i)+bonus*len(i) for i in scaling[:5]], 'a', 'electro'),
                                 'A': Skills(char, sum(scaling[5])+bonus*2, 'A', 'electro'),
                                 'pl': Skills(char, sum(scaling[6])+bonus, 'pl', 'electro'),
                                 'PL_low': Skills(char, scaling[7][0]+bonus, 'PL_low', 'electro'),
                                 'PL_high': Skills(char, scaling[7][1]+bonus, 'PL_high', 'electro')})
-        self.char.skill_q.scale += 7 * stacks
+        self.char.skill_q.scale += scaling[-2][0] * stacks
 
     def update(self, *args, **kwargs):
         pass
@@ -60,9 +62,9 @@ class Buff_e(BasicBuff):
                                               0.,
                                               0.]]))
 
-    def valid(self, skill, team):
+    def valid(self, skill, team, on_field):
         # print(self.char.idx == team.on_field)
-        return self.char.idx == team.on_field
+        return on_field
 
     def update(self, energy=90):
         # print(type(energy))
@@ -89,7 +91,7 @@ class BuffConstellation4(BasicBuff):
                                               0.,
                                               0.]]))
 
-    def valid(self, skill, team):
+    def valid(self, skill, team, on_field):
         return self.char.idx != skill.char.idx
 
 
@@ -165,22 +167,12 @@ class RaidenShogun(Character):
                       "infusion": self.infusion,
                       "附魔": self.infusion}
 
+        self.constellation_effect()
+
     def constellation_effect(self, *args, **kwargs):
         if self.constellation >= 2:
-            for skill in [self.skill_q, * self.infusion.skill_infused.keys()]:
-                skill.calculate = calculate
-        if self.constellation >= 3:
-            self.skill_q.scale += 130.26
-            a_bonus = [13.72, 13.49, 16.52, 18.89, 22.69]
-            for i in range(5):
-                self.infusion.skill_infused['a'].skills[i].scale += a_bonus[i]
-            self.infusion.skill_infused['A'].scale += 41.71
-            self.infusion.skill_infused['pl'].scale += 26.76
-            self.infusion.skill_infused['PL_low'].scale += 53.52
-            self.infusion.skill_infused['PL_high'].scale += 66.84
+            for skill in [self.skill_q, * self.infusion.skills_infused.values()]:
+                skill.calculate = types.MethodType(calculate, skill)
         if self.constellation >= 4:
             self.buffs['c4'] = self.buff_c4
-        if self.constellation >= 5:
-            self.skill_e_init.scale += 38.09
-            self.skill_e.scale += 13.65
 

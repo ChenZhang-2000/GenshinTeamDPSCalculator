@@ -22,6 +22,7 @@ if __name__ == "__main__":
     # main()
     chars_data = read_char_excel()
     enemyies = read_enemy_excel()
+    # print(enemyies['Hilichurl'].data)
 
     team = team_generation(chars_data)
     skill_df, buff_df, infusion_df = read_skill_excel(team)
@@ -32,8 +33,9 @@ if __name__ == "__main__":
                   infusions=infusion_df)
     model.validation()
     total_dmg = model.run()
+    # print(total_dmg[-1])
     plt.plot(model.times, total_dmg)
     plt.xlabel('Time')
     plt.ylabel('DMG')
-    plt.show()
+    # plt.show()
 

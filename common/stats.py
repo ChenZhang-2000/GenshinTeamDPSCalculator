@@ -165,7 +165,7 @@ class Buff(Stats):
     def __str__(self):
         return f"Character: {type(self.char).__name__}\nBuff: {type(self).__name__}\n" + f"Value:\n  {self.data.numpy()}\n"
 
-    def valid(self, skill, team):
+    def valid(self, skill, team, on_field):
         return True
 
     def update(self, *args, **kwargs):
@@ -327,7 +327,7 @@ class Skills:
         self.element_type = element_type
         self.reaction_factor = 1.
 
-    def buff_valid(self, buff, team):
+    def buff_valid(self, buff, team, on_field):
         correct_skill = False
         correct_validation = False
         correct_element = False
@@ -337,7 +337,7 @@ class Skills:
         elif self.skill_type in buff.skill_type:
             correct_skill = True
 
-        if buff.valid(self, team):
+        if buff.valid(self, team, on_field):
             correct_validation = True
 
         if buff.element_type == 'all':
@@ -348,7 +348,7 @@ class Skills:
         # print(correct_validation, correct_skill, correct_element)
         return correct_validation and correct_skill and correct_element
 
-    def buff_skill(self, team, basic_buffs, proportion_buffs):
+    def buff_skill(self, team, basic_buffs, proportion_buffs, on_field_idx):
         """
         This method will check and update all the buffs of a skill, and changed the team stats to buffed stats
 
@@ -364,12 +364,12 @@ class Skills:
         for buff in basic_buffs:
             # print(basic_buffs)
             # print(buff)
-            if self.buff_valid(buff, team):
+            if self.buff_valid(buff, team, self.char.idx == on_field_idx):
                 team.add_basic_buff(buff, self.char.idx)
 
         for buff in proportion_buffs:
             # print(buff)
-            if self.buff_valid(buff, team):
+            if self.buff_valid(buff, team, self.char.idx == on_field_idx):
                 team.add_proportional_buff(buff, self.char.idx)
                 # print(buff)
 
@@ -377,7 +377,7 @@ class Skills:
         for debuff in debuffs:
             enemy.change_stats(debuff)
 
-    def damage(self, team, enemy, buffs: ([], [], []), reaction, infusions=None):
+    def damage(self, team, enemy, buffs: ([], [], []), reaction, infusions=None, on_field_idx=0):
         """
         team: team object
         enemy: enemy object
@@ -412,7 +412,7 @@ class Skills:
             self._num_calculated += 1
             first_dmg = self.first_skill.damage(team, enemy, buffs, reaction, infusions)
 
-        self.buff_skill(team, buffs[0], buffs[1] + team.permanent_prop_buffs[self.char.idx])
+        self.buff_skill(team, buffs[0], buffs[1] + team.permanent_prop_buffs[self.char.idx], on_field_idx)
         self.debuff_enemy(enemy, buffs[2])
         c_idx = self.char.idx
         stats = team.get_stats(c_idx)
@@ -459,7 +459,7 @@ class PolySkills:
         self.skill_type = skill_type
         self.element_type = element_type
 
-    def damage(self, team, enemy, buffs: ([], [], []), reaction, infusions=None):
+    def damage(self, team, enemy, buffs: ([], [], []), reaction, infusions=None, on_field_idx=0):
         dmg = 0
         if not (infusions is None):
             # for infusion in infusions:
@@ -476,9 +476,9 @@ class PolySkills:
                 infusion = infusions[infusion_map.argmax()]
                 target_skill = infusion.skills_infused[self.skill_type]
                 target_skill.update(strike=self.strike)
-                return target_skill.damage(team, enemy, buffs, reaction)
+                return target_skill.damage(team, enemy, buffs, reaction, on_field_idx=on_field_idx)
         for i in range(self.strike):
-            dmg += self.skills[i % self.strike_length].damage(team, enemy, buffs, reaction, infusions)
+            dmg += self.skills[i % self.strike_length].damage(team, enemy, buffs, reaction, infusions, on_field_idx=on_field_idx)
         return dmg
 
     def update(self, strike, *args, **kwargs):

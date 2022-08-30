@@ -19,6 +19,8 @@ with open(rf"{_config_direc}\kw_map\skill_header_map.yaml", 'r', encoding="utf-8
     _skill_header_map = yaml.safe_load(stream)
 with open(rf"{_config_direc}\kw_map\skill_map.yaml", 'r', encoding="utf-8") as stream:
     _skill_map = yaml.safe_load(stream)
+with open(rf"{_config_direc}\kw_map\reaction_map.yaml", 'r', encoding="utf-8") as stream:
+    _reaction_map = yaml.safe_load(stream)
 
 with open(rf"{_config_direc}\stats_position_map.yaml", 'r', encoding="utf-8") as stream:
     stats_pos_map = yaml.safe_load(stream)
@@ -31,3 +33,4 @@ enemy_header_map = {alias: obj for obj in _enemy_header_map for alias in _enemy_
 skill_header_map = {alias: obj for obj in _skill_header_map for alias in _skill_header_map[obj]}
 skill_map = {alias: obj for obj in _skill_map for alias in _skill_map[obj]}
 stats_map = {alias: obj for obj in _stats_map for alias in _stats_map[obj]}
+reaction_map = {alias: obj for obj in _reaction_map for alias in _reaction_map[obj]}

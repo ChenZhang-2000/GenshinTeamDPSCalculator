@@ -99,7 +99,12 @@ class Character(object):
         self.element = data['element']
         self.level = int(level)
         self.constellation = constellation
-        self.skill_level = skill_level
+        self.skill_level = list(skill_level)
+
+        if self.constellation >= 3:
+            self.skill_level[1] += 3
+        if self.constellation >= 5:
+            self.skill_level[2] += 3
 
         base_attributes = torch.tensor(char_stats.base_value[self.char_name]) * char_stats.level_multiplier[data["stars"]][self.level]
         base_attributes += torch.tensor(char_stats.max_ascension_value[self.char_name]) * char_stats.ascension_value_multiplier[ascension_phase]

@@ -240,7 +240,8 @@ class Model:
                 # print(infusion)
                 # print(skill)
                 dmg = skill.damage(team=self.team, enemy=self.enemy, buffs=buffs, reaction=valid_skill['reaction'],
-                                   infusions=infusion, **(valid_skill['kwarg']))
+                                   infusions=infusion, **(valid_skill['kwarg']),
+                                   on_field_idx=self.team.on_field[self.inv_time[start_time]])
                 end_time = valid_skill['end_time']
                 # print(self.inv_time[end_time])
                 # print(dmg)

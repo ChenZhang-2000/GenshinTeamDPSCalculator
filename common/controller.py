@@ -136,7 +136,7 @@ def expand_params(params):
     return arg, kwarg
 
 
-def value_parsing(char, value, mode):
+def value_parsing(char, values, mode):
     """
     This function will take a character and the value of the skill or buff cell.
     It'll first decode the value into name and parameters. If the value is calling weapon or
@@ -158,8 +158,12 @@ def value_parsing(char, value, mode):
     else:
         raise ValueError
     # print(value)
-    for groups in re.findall(r"([a-zA-z\u4e00-\u9fff]{1,})(?:{{0,1})(\w{0,})(?:}{0,1})", value):
-        name, params = groups
+    pattern = r"([a-zA-z0-9\u4e00-\u9fff]{1,})(?:{{0,1})([a-zA-z0-9\u4e00-\u9fff]{0,})(?:}{0,1})(?:\({0,1})([a-zA-z0-9\u4e00-\u9fff]{0,})(?:\){0,1})"
+
+    for value in values.split():
+        groups = re.match(pattern, value)
+        name, params, reaction_name = groups
+        reaction = config.reaction_map[reaction_name]
         params = [i.strip() for i in params.split(',')]
         if name in config.skill_map.keys():
             if config.skill_map[name] == 'weapon':
@@ -216,32 +220,42 @@ def read_skill_excel(team, file_direc=r".\data\skills.xlsx"):
 
     ws = openpyxl.load_workbook(file_direc, data_only=True).worksheets[0]
 
-    time_col, on_field_col, skill_col, buff_col = None, None, None, None
-    col_char_map = {}
+    time_row, on_field_row, skill_row, buff_row = None, None, None, None
+    row_char_map = {}
     for i, cell in enumerate(ws['A'], 1):
         try:
             mark = config.skill_header_map[cell.value]
             if mark == 'time':
-                time_col = i
+                time_row = i
             elif mark == 'on_field':
-                on_field_col = i
+                on_field_row = i
             elif mark == 'skill':
-                skill_col = i
+                skill_row = i
             elif mark == 'buff':
-                buff_col = i
+                buff_row = i
             else:
                 raise
         except KeyError:
             # print(i)
-            col_char_map[i] = char_map[cell.value]
+            row_char_map[i] = char_map[cell.value]
 
-    times = [float(cell.value) for cell in ws[time_col][1:]]
+    times = [float(cell.value) for cell in ws[time_row][1:]]
+    last = ws[on_field_row][0]
+    on_field_indexes = []
+    for i in range(1, len(times)):
+        value = ws[on_field_row][i].value
+        if value is None:
+            on_field_indexes.append(char_map[last].idx)
+        else:
+            on_field_indexes.append(char_map[value].idx)
+            last = value
+    team.on_field = on_field_indexes
     # on_fields =
     # print(col_char_map)
     # print(buff_col)
-    for idx, row in enumerate(ws.iter_rows(min_row=skill_col+1, max_row=buff_col-1), skill_col+1):
+    for idx, row in enumerate(ws.iter_rows(min_row=skill_row+1, max_row=buff_row-1), skill_row+1):
         # print(idx)
-        char = col_char_map[idx]
+        char = row_char_map[idx]
         start = False
         i = 0
         for i, cell in enumerate(row[1:]):
@@ -269,9 +283,9 @@ def read_skill_excel(team, file_direc=r".\data\skills.xlsx"):
             for skill in skills:
                 skill_df.loc[len(skill_df.index)] = [skill, start_time, end_time, None, {}]
 
-    for idx, row in enumerate(ws.iter_rows(min_row=buff_col + 1), buff_col + 1):
+    for idx, row in enumerate(ws.iter_rows(min_row=buff_row + 1), buff_row + 1):
         # print(idx)
-        char = col_char_map[idx]
+        char = row_char_map[idx]
         start = False
         i = 0
         for i, cell in enumerate(row[1:]):
