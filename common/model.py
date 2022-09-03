@@ -7,14 +7,7 @@ from torch.nn.functional import one_hot
 
 from common.characters.base_char import Character
 from common.stats import BasicBuff, ProportionalBuff, Stats, Debuff
-
-
-class InvalidModel(Exception):
-    pass
-
-
-class InvalidSkillTime(InvalidModel):
-    pass
+from common.exception import InvalidSkillTime
 
 
 class Team:

@@ -33,4 +33,6 @@ enemy_header_map = {alias: obj for obj in _enemy_header_map for alias in _enemy_
 skill_header_map = {alias: obj for obj in _skill_header_map for alias in _skill_header_map[obj]}
 skill_map = {alias: obj for obj in _skill_map for alias in _skill_map[obj]}
 stats_map = {alias: obj for obj in _stats_map for alias in _stats_map[obj]}
+
 reaction_map = {alias: obj for obj in _reaction_map for alias in _reaction_map[obj]}
+reaction_map[''] = None

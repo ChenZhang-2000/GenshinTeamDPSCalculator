@@ -1,13 +1,20 @@
 Vaporize: ['蒸发', 'Vaporize']
 Melt: ['融化', '熔化', '溶化', 'Melt']
 Frozen: ['冻结', 'Frozen']
+
 Overloaded: ['超载', 'Overloaded']
 ElectroCharged: ['感电', 'ElectroCharged', 'Electro_Charged']
 Superconduct: ['超导', 'Superconduct']
+
 Quicken: ['激化', 'Quicken']
 Aggravate: ['超激化', 'Aggravate']
 Spread: ['蔓激化', 'Spread']
+
 Burning: ['燃烧', 'Burning']
+
 Bloom: ['绽放', 'Bloom']
 Burgeon: ['烈绽放', '列绽放', 'Burgeon']
 Hyperbloom: ['超绽放', 'Hyperbloom']
+
+Swirl: ['扩散', 'Swirl']
+Crystallize: ['结晶', 'Crystallize']

@@ -6,13 +6,16 @@ from openpyxl.cell.cell import MergedCell
 import torch
 import pandas as pd
 
+from common import config
+from common.reaction import REACTION_FACTORY
+from common.exception import InvalidCell, InvalidTitle, InvalidStats
+from common.exception import invalid_char_file, varify_char_file, invalid_enemy_file, varify_enemy_file
 from common.stats import STATS_LENGTH, Infusion
 from common.model import Model, Team
 from common.characters import CHAR_FACTORY
 from common.weapon import WEAPON_FACTORY
 from common.artifact import ArtifactSet, ARTIFACT_FACTORY
 from common.enemy import ENEMY_FACTORY
-from common import config
 
 
 def team_generation(char_data):
@@ -53,7 +56,14 @@ def read_char_excel(file_direc=r".\data\characters.xlsx"):
     """
     ws = openpyxl.load_workbook(file_direc, data_only=True).worksheets[0]
     chars = []
-    header = [config.stats_map[cell.value] for cell in ws[1]]
+    header = []
+
+    for cell in ws[1]:
+        try:
+            header.append(config.stats_map[cell.value])
+        except KeyError:
+            raise InvalidTitle(cell)
+
     data_map = config.stats_pos_map
     for row in ws.iter_rows(min_row=2):
         artifact_data = torch.zeros(STATS_LENGTH)
@@ -64,12 +74,16 @@ def read_char_excel(file_direc=r".\data\characters.xlsx"):
                 '''
                 the basic information of character
                 '''
+                varify_char_file(header[i], cell)
                 char_data[header[i]] = value
             else:
                 '''
                 the attributes of artifacts of character
                 '''
-                value = 0. if value is None else float(value)
+                try:
+                    value = 0. if value is None else float(value)
+                except ValueError:
+                    raise InvalidStats(cell)
                 artifact_data[data_map[header[i]]] = value
 
         level = char_data['character_level']
@@ -111,6 +125,7 @@ def read_enemy_excel(file_direc=r".\data\enemy.xlsx"):
         enemy_data = {}
         for i, cell in enumerate(row):
             value = cell.value
+            varify_enemy_file(header[i], cell)
             enemy_data[header[i]] = value
         enemies[enemy_data['name']] = ENEMY_FACTORY[config.enemy_map[enemy_data['enemy']]](enemy_data['enemy_level'])
     return enemies
@@ -161,9 +176,11 @@ def value_parsing(char, values, mode):
     pattern = r"([a-zA-z0-9\u4e00-\u9fff]{1,})(?:{{0,1})([a-zA-z0-9\u4e00-\u9fff]{0,})(?:}{0,1})(?:\({0,1})([a-zA-z0-9\u4e00-\u9fff]{0,})(?:\){0,1})"
 
     for value in values.split():
-        groups = re.match(pattern, value)
-        name, params, reaction_name = groups
-        reaction = config.reaction_map[reaction_name]
+        groups = re.match(pattern, value).groups()
+        # print(groups)
+        name, params, reaction_alias = groups
+        reaction_name = config.reaction_map[reaction_alias]
+        reaction = REACTION_FACTORY[reaction_name]
         params = [i.strip() for i in params.split(',')]
         if name in config.skill_map.keys():
             if config.skill_map[name] == 'weapon':
@@ -320,3 +337,69 @@ def read_skill_excel(team, file_direc=r".\data\skills.xlsx"):
                     buff_df.loc[len(buff_df.index)] = [buff, start_time, end_time]
 
     return skill_df, buff_df, infusion_df
+
+
+def get_char():
+    while True:
+        directory = input("请输入角色信息表格位置：")
+        try:
+            chars_data = read_char_excel(directory)
+            return chars_data
+        except InvalidCell as err:
+            invalid_char_file(err)
+            print("请重新输入")
+            print()
+        except FileNotFoundError as err:
+            print("文件不存在，请重新输入")
+            print()
+
+
+def get_enemy():
+    while True:
+        directory = input("请输入敌人信息表格位置：")
+        try:
+            enemies = read_enemy_excel(directory)
+            return enemies
+        except InvalidCell as err:
+            invalid_enemy_file(err)
+            print("请重新输入")
+            print()
+        except FileNotFoundError as err:
+            print("文件不存在，请重新输入")
+            print()
+
+
+def get_skills(enemies, team):
+    while True:
+        directory = input("请输入技能信息表格位置：")
+        try:
+            skill_df, buff_df, infusion_df = read_skill_excel(team, directory)
+            models = []
+            for enemy in enemies:
+               models.append(Model(team=team, enemy=enemies[enemy],
+                                   skills=skill_df,
+                                   buffs=buff_df,
+                                   infusions=infusion_df))
+            models[0].validation()
+            return models
+        except InvalidCell as err:
+            invalid_enemy_file(err)
+            print("请重新输入")
+            print()
+        except FileNotFoundError as err:
+            print("文件不存在，请重新输入")
+            print()
+
+
+def terminal_ui():
+    chars_data = get_char()
+    enemies = get_enemy()
+
+    team = team_generation(chars_data)
+    models = get_skills(enemies, team)
+
+    damage_result = []
+    for model in models:
+        damage_result.append(model.run())
+
+    return damage_result
