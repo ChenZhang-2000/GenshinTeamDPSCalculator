@@ -209,8 +209,68 @@ def varify_enemy_file(value_type, cell, ws=0):
             raise InvalidEnemyLevel(cell, ws)
 
 
+class InvalidSkillName(InvalidCell):
+    def __init__(self, cell, ws_idx=0):
+        super().__init__(cell, ws_idx)
+
+
+class InvalidBuffName(InvalidCell):
+    def __init__(self, cell, ws_idx=0):
+        super().__init__(cell, ws_idx)
+
+
+class InvalidIndex(InvalidCell):
+    def __init__(self, cell, ws_idx=0):
+        super().__init__(cell, ws_idx)
+
+
+class InvalidCharNameInSkillFile(InvalidIndex):
+    def __init__(self, cell, ws_idx=0):
+        super().__init__(cell, ws_idx)
+
+
+class MissingIndex(InvalidIndex):
+    def __init__(self, ws_idx):
+        self.ws_idx = ws_idx
+
+
+class MissingTime(MissingIndex):
+    def __init__(self, ws_idx=0):
+        super().__init__(ws_idx)
+
+
+class MissingSkills(MissingIndex):
+    def __init__(self, ws_idx=0):
+        super().__init__(ws_idx)
+
+
+class MissingBuffs(MissingIndex):
+    def __init__(self, ws_idx=0):
+        super().__init__(ws_idx)
+
+
+class MissingOnField(MissingIndex):
+    def __init__(self, ws_idx=0):
+        super().__init__(ws_idx)
+
+
 def invalid_skill_file(err):
     pass
+
+
+def invalid_skill_index(err):
+    if isinstance(err, MissingIndex):
+        if isinstance(err, MissingTime):
+            print(f"表格{err.ws_idx}缺少时间轴注明")
+        elif isinstance(err, MissingSkills):
+            print(f"表格{err.ws_idx}缺少技能循环注明")
+        elif isinstance(err, MissingBuffs):
+            print(f"表格{err.ws_idx}缺少增益效果注明")
+        elif isinstance(err, MissingOnField):
+            print(f"表格{err.ws_idx}缺少战场角色注明")
+
+    elif isinstance(err, InvalidCharNameInSkillFile):
+        print(f"表格{err.ws_idx}的{err.col_idx}{err.row_idx}单元格有一个无法识别的角色名：{err.value}")
 
 
 def varify_skill_file(value_type, cell, ws=0):

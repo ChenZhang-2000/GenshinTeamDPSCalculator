@@ -3,13 +3,16 @@ import re
 import yaml
 import openpyxl
 from openpyxl.cell.cell import MergedCell
+from openpyxl.utils.exceptions import InvalidFileException
 import torch
 import pandas as pd
 
 from common import config
-from common.reaction import REACTION_FACTORY
-from common.exception import InvalidCell, InvalidTitle, InvalidStats
+from common.reaction.reaction import REACTION_FACTORY
+from common.exception import InvalidCell, InvalidTitle, InvalidStats, InvalidCharNameInSkillFile, InvalidIndex
+from common.exception import MissingTime, MissingSkills, MissingBuffs, MissingOnField
 from common.exception import invalid_char_file, varify_char_file, invalid_enemy_file, varify_enemy_file
+from common.exception import invalid_skill_index, invalid_skill_file, varify_skill_file
 from common.stats import STATS_LENGTH, Infusion
 from common.model import Model, Team
 from common.characters import CHAR_FACTORY
@@ -171,7 +174,7 @@ def value_parsing(char, values, mode):
     elif mode in ['buffs', 'buff']:
         d = char.buffs
     else:
-        raise ValueError
+        raise ValueError(f"Invalid mode {mode}")
     # print(value)
     pattern = r"([a-zA-z0-9\u4e00-\u9fff]{1,})(?:{{0,1})([a-zA-z0-9\u4e00-\u9fff]{0,})(?:}{0,1})(?:\({0,1})([a-zA-z0-9\u4e00-\u9fff]{0,})(?:\){0,1})"
 
@@ -180,26 +183,22 @@ def value_parsing(char, values, mode):
         # print(groups)
         name, params, reaction_alias = groups
         reaction_name = config.reaction_map[reaction_alias]
-        reaction = REACTION_FACTORY[reaction_name]
+        reaction = None if reaction_name is None else REACTION_FACTORY[reaction_name]
         params = [i.strip() for i in params.split(',')]
         if name in config.skill_map.keys():
             if config.skill_map[name] == 'weapon':
-                if mode in ['skills', 'skill']:
-                    target = char.weapon.skills
-                elif mode in ['buffs', 'buff']:
-                    target = char.weapon.buffs
-                else:
-                    raise ValueError
-
+                target = char.weapon
             elif config.skill_map[name] == 'artifact':
-                if mode in ['skills', 'skill']:
-                    target = char.artifact.skills
-                elif mode in ['buffs', 'buff']:
-                    target = char.artifact.buffs
-                else:
-                    raise ValueError
+                target = char.artifact
             else:
-                raise
+                raise ValueError(f"Invalid mode {mode}")
+
+            if mode in ['skills', 'skill']:
+                target = target.skills
+            elif mode in ['buffs', 'buff']:
+                target = target.buffs
+            else:
+                raise ValueError(f"Invalid mode {mode}")
 
             if len(params) == 1 and params[0] == '':
                 objects.append(target[0])
@@ -219,6 +218,49 @@ def value_parsing(char, values, mode):
     return objects
 
 
+def decode_skill_block(block, times, row_char_map, data_frame, mode):
+    for idx, row in block:
+        # print(idx)
+        char = row_char_map[idx]
+        start = False
+        i = 0
+        for i, cell in enumerate(row[1:]):
+            if i == len(times):
+                break
+            if isinstance(cell, MergedCell):
+                pass
+            else:
+                if cell.value is None:
+                    pass
+                else:
+                    if start:
+                        end_time = times[i]
+                        write_df(data_frame, objects, start_time, end_time, mode)
+                    start_time = times[i]
+                    objects = value_parsing(char, cell.value, mode)
+                    if len(objects) != 0:
+                        start = True
+                    else:
+                        start = False
+        if start:
+            end_time = times[i]
+            write_df(data_frame, objects, start_time, end_time, mode)
+
+
+def write_df(df, objects, start_time, end_time, mode):
+    if mode == "skill" or mode == "skills":
+        for obj in objects:
+            df.loc[len(df.index)] = [obj, start_time, end_time, None, {}]
+    elif mode == "buffs" or mode == "buff":
+        for obj in objects:
+            if isinstance(obj, Infusion):
+                df[1].loc[len(df[1].index)] = [obj, start_time, end_time]
+            else:
+                df[0].loc[len(df[0].index)] = [obj, start_time, end_time]
+    else:
+        raise ValueError(f"Invalid mode {mode}")
+
+
 def read_skill_excel(team, file_direc=r".\data\skills.xlsx"):
     """
     This function will read xlsx file of skills.
@@ -236,11 +278,14 @@ def read_skill_excel(team, file_direc=r".\data\skills.xlsx"):
     infusion_df = pd.DataFrame(columns=['infusion', 'start_time', 'end_time'])
 
     ws = openpyxl.load_workbook(file_direc, data_only=True).worksheets[0]
+    ws_idx = 0
 
-    time_row, on_field_row, skill_row, buff_row = None, None, None, None
+    time_row, on_field_row, skill_row, buff_row, reaction_row = None, None, None, None, None
     row_char_map = {}
+
+    #
     for i, cell in enumerate(ws['A'], 1):
-        try:
+        if cell.value in config.skill_header_map.keys():
             mark = config.skill_header_map[cell.value]
             if mark == 'time':
                 time_row = i
@@ -250,91 +295,47 @@ def read_skill_excel(team, file_direc=r".\data\skills.xlsx"):
                 skill_row = i
             elif mark == 'buff':
                 buff_row = i
-            else:
-                raise
-        except KeyError:
+            elif mark == 'reaction':
+                reaction_row = i
+        else:
             # print(i)
-            row_char_map[i] = char_map[cell.value]
+            if cell.value in char_map.keys():
+                row_char_map[i] = char_map[cell.value]
+            else:
+                raise InvalidCharNameInSkillFile(cell, ws_idx)
+    if time_row is None:
+        raise MissingTime(ws_idx)
+    if on_field_row is None:
+        raise MissingOnField(ws_idx)
+    if skill_row is None:
+        raise MissingSkills(ws_idx)
+    if buff_row is None:
+        raise MissingBuffs(ws_idx)
+    if reaction_row is None:
+        reaction_row = buff_row
 
     times = [float(cell.value) for cell in ws[time_row][1:]]
     last = ws[on_field_row][0]
     on_field_indexes = []
     for i in range(1, len(times)):
-        value = ws[on_field_row][i].value
+        cell = ws[on_field_row][i]
+        value = cell.value
         if value is None:
             on_field_indexes.append(char_map[last].idx)
-        else:
+        elif value in char_map.keys():
             on_field_indexes.append(char_map[value].idx)
             last = value
+        else:
+            InvalidCharNameInSkillFile(cell, ws_idx)
     team.on_field = on_field_indexes
-    # on_fields =
-    # print(col_char_map)
-    # print(buff_col)
-    for idx, row in enumerate(ws.iter_rows(min_row=skill_row+1, max_row=buff_row-1), skill_row+1):
-        # print(idx)
-        char = row_char_map[idx]
-        start = False
-        i = 0
-        for i, cell in enumerate(row[1:]):
-            if i == len(times):
-                break
-            if isinstance(cell, MergedCell):
-                pass
-            else:
-                if cell.value is None:
-                    pass
-                else:
-                    if start:
-                        end_time = times[i]
-                        for skill in skills:
-                            skill_df.loc[len(skill_df.index)] = [skill, start_time, end_time, None, {}]
 
-                    start_time = times[i]
-                    skills = value_parsing(char, cell.value, 'skills')
-                    if len(skills) != 0:
-                        start = True
-                    else:
-                        start = False
-        if start:
-            end_time = times[i]
-            for skill in skills:
-                skill_df.loc[len(skill_df.index)] = [skill, start_time, end_time, None, {}]
-
-    for idx, row in enumerate(ws.iter_rows(min_row=buff_row + 1), buff_row + 1):
-        # print(idx)
-        char = row_char_map[idx]
-        start = False
-        i = 0
-        for i, cell in enumerate(row[1:]):
-            if i == len(times):
-                pass
-            if isinstance(cell, MergedCell):
-                pass
-            else:
-                if cell.value is None:
-                    pass
-                else:
-                    if start:
-                        end_time = times[i]
-                        for buff in buffs:
-                            if isinstance(buff, Infusion):
-                                infusion_df.loc[len(infusion_df.index)] = [buff, start_time, end_time]
-                            else:
-                                buff_df.loc[len(buff_df.index)] = [buff, start_time, end_time]
-
-                    start_time = times[i]
-                    buffs = value_parsing(char, cell.value, 'buffs')
-                    if len(buffs) != 0:
-                        start = True
-                    else:
-                        start = False
-        if start:
-            end_time = times[i]
-            for buff in buffs:
-                if isinstance(buff, Infusion):
-                    infusion_df.loc[len(infusion_df.index)] = [buff, start_time, end_time]
-                else:
-                    buff_df.loc[len(buff_df.index)] = [buff, start_time, end_time]
+    '''
+    decoding skills sections
+    '''
+    skill_block = enumerate(ws.iter_rows(min_row=skill_row+1, max_row=reaction_row-1), skill_row+1)
+    decode_skill_block(skill_block, times, row_char_map, skill_df, "skill")
+    buff_block = enumerate(ws.iter_rows(min_row=buff_row + 1), buff_row + 1)
+    decode_skill_block(buff_block, times, row_char_map, [buff_df, infusion_df], "buff")
 
     return skill_df, buff_df, infusion_df
 
@@ -342,12 +343,17 @@ def read_skill_excel(team, file_direc=r".\data\skills.xlsx"):
 def get_char():
     while True:
         directory = input("请输入角色信息表格位置：")
+        if directory == '':
+            directory = r"data\characters.xlsx"
         try:
             chars_data = read_char_excel(directory)
             return chars_data
         except InvalidCell as err:
             invalid_char_file(err)
             print("请重新输入")
+            print()
+        except InvalidFileException:
+            print("文件无法识别，请检测是否能用Excel打开该文件")
             print()
         except FileNotFoundError as err:
             print("文件不存在，请重新输入")
@@ -357,12 +363,17 @@ def get_char():
 def get_enemy():
     while True:
         directory = input("请输入敌人信息表格位置：")
+        if directory == '':
+            directory = r"data\enemy.xlsx"
         try:
             enemies = read_enemy_excel(directory)
             return enemies
         except InvalidCell as err:
             invalid_enemy_file(err)
             print("请重新输入")
+            print()
+        except InvalidFileException:
+            print("文件无法识别，请检测是否能用Excel打开该文件")
             print()
         except FileNotFoundError as err:
             print("文件不存在，请重新输入")
@@ -372,6 +383,8 @@ def get_enemy():
 def get_skills(enemies, team):
     while True:
         directory = input("请输入技能信息表格位置：")
+        if directory == '':
+            directory = r"data\skills.xlsx"
         try:
             skill_df, buff_df, infusion_df = read_skill_excel(team, directory)
             models = []
@@ -382,9 +395,16 @@ def get_skills(enemies, team):
                                    infusions=infusion_df))
             models[0].validation()
             return models
-        except InvalidCell as err:
-            invalid_enemy_file(err)
+        except InvalidIndex as err:
+            invalid_skill_index(err)
             print("请重新输入")
+            print()
+        except InvalidCell as err:
+            invalid_skill_file(err)
+            print("请重新输入")
+            print()
+        except InvalidFileException:
+            print("文件无法识别，请检测是否能用Excel打开该文件")
             print()
         except FileNotFoundError as err:
             print("文件不存在，请重新输入")
@@ -402,4 +422,4 @@ def terminal_ui():
     for model in models:
         damage_result.append(model.run())
 
-    return damage_result
+    return damage_result, models

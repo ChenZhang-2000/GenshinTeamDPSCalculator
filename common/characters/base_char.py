@@ -89,8 +89,36 @@ def register_char(cls):
 
 
 class Character(object):
+    """
+    The abstract class of all characters. All the characters will inherit from this class
+
+    :param char_name
+    :param name
+    :param idx
+    :param element
+    :param level
+    :param constellation
+    :param skill_level
+    :param stats
+    :param scaling
+    :param weapon
+    :param artifact
+    :param skills
+    :param buffs
+    """
     def __init__(self, weapon, artifact, level=90, constellation=0, name='Unknown Character',
                  ascension_phase=6, skill_level=(10, 10, 10)):
+        """
+        This initialization method will initialize a character object.
+
+        :param weapon: Weapon object
+        :param artifact: ArtifactSet object
+        :param level: character level, non-negative int
+        :param constellation: character constellation, non-negative int
+        :param name: character name, string
+        :param ascension_phase: character ascension phase, non-negative int
+        :param skill_level: the levels of skills of the character, a tuple of three non-negative ints
+        """
         self.char_name = self.__class__.__name__
         data = json.load(open(f"common\\characters\\stats\\{self.__class__.__name__}.json"))
 
@@ -171,9 +199,12 @@ class Character(object):
                       "P": self.buff_P}
 
     def set_idx(self, idx):
+        """
+        This method will set the index of this character
+
+        :param idx: the index of character in the team
+        """
         self.idx = idx
-        self.weapon.set_char_idx(idx)
-        self.artifact.set_char_idx(idx)
 
     # def set_team_stats(self, stats):
     #     self.team_stats = stats
