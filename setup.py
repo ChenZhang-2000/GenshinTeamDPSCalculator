@@ -16,7 +16,7 @@ setuptools.setup(
         "Bug Tracker": "https://github.com/ChenZhang-2000/GenshinTeamDPSCalculator/issues"
     },
     license='GPL',
-    packages=['.'],
+    packages=['../GenshinTeamDPSCalculator'],
              # ['GTDC',
              #  'common', 'common.artifact', 'common.characters', 'common.enemy', 'common.weapon',
              #  'common.artifact', 'common.characters.stats', 'common.enemy.stats', 'common.weapon.stats',
