@@ -18,8 +18,8 @@ setup(
     license='GPL',
     packages=find_packages(where="GTDC"),
     include_package_data=True,
-    package_dir={"GTDC": "GTDC"},
-    package_data={"GTDC": ["*.yaml", "*.json"]},
+    package_dir={"": "."},
+    package_data={".": ["*.yaml", "*.json"]},
     install_requires=['torch', 'numpy', 'pandas', 'matplotlib', 'PyYAML'],
 )
 
