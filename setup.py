@@ -17,7 +17,7 @@ setuptools.setup(
     },
     license='GPL',
     packages=['GTDC',
-              'common', 'common.artifact', 'common.characters', 'common.enemy', 'common.weapon' 
+              'common', 'common.artifact', 'common.characters', 'common.enemy', 'common.weapon',
               'configs', 'tools'],
     install_requires=['torch', 'numpy', 'pandas', 'matplotlib', 'PyYAML'],
 )
