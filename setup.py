@@ -16,6 +16,6 @@ setuptools.setup(
         "Bug Tracker": "https://github.com/ChenZhang-2000/GenshinTeamDPSCalculator/issues"
     },
     license='GPL',
-    packages=['GTDC'],
+    packages=['GTDC', 'common', 'configs', 'tools'],
     install_requires=['torch', 'numpy', 'pandas', 'matplotlib', 'PyYAML'],
 )
