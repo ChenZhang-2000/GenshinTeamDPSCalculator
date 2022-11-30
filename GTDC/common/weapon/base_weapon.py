@@ -1,4 +1,6 @@
 import json
+import os
+
 import torch
 
 from GTDC.common.stats import Stats, Buff, BasicBuff, ProportionalBuff
@@ -18,7 +20,8 @@ def register_weapon(cls):
 
 class Weapon(object):
     def __init__(self, affix=1):
-        data = json.load(open(f"common\\weapon\\stats\\{self.__class__.__name__}.json"))
+        file_name = os.path.join(os.path.dirname(__file__), f'stats\\{self.__class__.__name__}.json')
+        data = json.load(open(file_name))
 
         self.stats = Stats(torch.tensor(data['stats']).reshape(1, Stats.length))
         self.permanent_buffs = []

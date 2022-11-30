@@ -1,4 +1,6 @@
 import json
+import os
+
 import numpy as np
 
 from GTDC.common.stats import Stats, Buff, BasicBuff, ProportionalBuff, ESTATS_LENGTH, Monster
@@ -18,7 +20,8 @@ def register_enemy(cls):
 
 class Enemy(Monster):
     def __init__(self, level):
-        data = json.load(open(f"common\\enemy\\stats\\{self.__class__.__name__}.json"))
+        file_name = os.path.join(os.path.dirname(__file__), f'stats\\{self.__class__.__name__}.json')
+        data = json.load(open(file_name))
         super().__init__(array=np.array(data['stats']).reshape(1, Monster.length))
         self.stats = self.data - 0
         self.dynamic_stats = self.data - 0

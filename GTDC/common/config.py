@@ -1,6 +1,9 @@
+import os
+
 import yaml
 
-_config_direc = r".\configs"
+
+_config_direc = os.path.join(os.path.dirname(__file__), rf'..\configs')
 
 with open(rf"{_config_direc}\kw_map\char_map.yaml", 'r', encoding="utf-8") as stream:
     _char_map = yaml.safe_load(stream)

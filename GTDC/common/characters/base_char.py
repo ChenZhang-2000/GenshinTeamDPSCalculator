@@ -1,4 +1,6 @@
+import os
 import json
+
 import numpy as np
 import torch
 
@@ -120,7 +122,8 @@ class Character(object):
         :param skill_level: the levels of skills of the character, a tuple of three non-negative ints
         """
         self.char_name = self.__class__.__name__
-        data = json.load(open(f"common\\characters\\stats\\{self.__class__.__name__}.json"))
+        file_name = os.path.join(os.path.dirname(__file__), f'stats\\{self.__class__.__name__}.json')
+        data = json.load(open(file_name))
 
         self.name = name
         self.idx = 0
