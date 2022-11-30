@@ -17,5 +17,5 @@ setuptools.setup(
     },
     license='GPL',
     packages=['GTDC'],
-    install_requires=['pytorch', 'numpy', 'pandas', 'matplotlib', 'PyYAML'],
+    install_requires=['torch', 'numpy', 'pandas', 'matplotlib', 'PyYAML'],
 )
