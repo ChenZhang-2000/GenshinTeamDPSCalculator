@@ -1,4 +1,4 @@
-import setuptools
+import setuptools, find_packages
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -16,11 +16,13 @@ setuptools.setup(
         "Bug Tracker": "https://github.com/ChenZhang-2000/GenshinTeamDPSCalculator/issues"
     },
     license='GPL',
-    packages=['GTDC',
-              'GTDC.common', 'GTDC.common.artifact', 'GTDC.common.characters', 'GTDC.common.enemy', 'GTDC.common.weapon',
-              'GTDC.common.artifact', 'GTDC.common.characters.stats', 'GTDC.common.enemy.stats', 'GTDC.common.weapon.stats',
-              'GTDC.configs', 'GTDC.tools'],
+    packages=find_packages(where="GTDC"),
+             # ['GTDC',
+             #  'GTDC.common', 'GTDC.common.artifact', 'GTDC.common.characters', 'GTDC.common.enemy', 'GTDC.common.weapon',
+             #  'GTDC.common.artifact', 'GTDC.common.characters.stats', 'GTDC.common.enemy.stats', 'GTDC.common.weapon.stats',
+             #  'GTDC.configs', 'GTDC.tools'],
     include_package_data=True,
-    package_data={"mypkg": ["*.yaml", "*.json"]},
+    package_dir={"": "GTDC"},
+    package_data={"GTDC": ["*.yaml", "*.json"]},
     install_requires=['torch', 'numpy', 'pandas', 'matplotlib', 'PyYAML'],
 )
