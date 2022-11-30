@@ -33,7 +33,7 @@ setup(
     #             ("GTDC/common/enemy/stats", ["GTDC/common/enemy/stats/*.yaml", "GTDC/common/enemy/stats/*.json"]),
     #             ("GTDC/common/weapon/stats", ["GTDC/common/weapon/stats/*.yaml", "GTDC/common/weapon/stats/*.json"]),
     #             ],
-    install_requires=['torch', 'numpy', 'pandas', 'matplotlib', 'PyYAML'],
+    install_requires=['torch', 'numpy', 'pandas', 'matplotlib', 'PyYAML', 'openpyxl'],
 )
 
 # ['GTDC',
