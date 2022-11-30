@@ -16,10 +16,10 @@ setup(
         "Bug Tracker": "https://github.com/ChenZhang-2000/GenshinTeamDPSCalculator/issues"
     },
     license='GPL',
-    packages=find_packages(where="GTDC"),
+    packages=find_packages(where="."),
     include_package_data=True,
-    package_dir={"": "."},
-    package_data={".": ["*.yaml", "*.json"]},
+    package_dir={"GTDC": "GTDC"},
+    package_data={"GTDC": ["*.yaml", "*.json"]},
     install_requires=['torch', 'numpy', 'pandas', 'matplotlib', 'PyYAML'],
 )
 
