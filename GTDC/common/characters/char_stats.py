@@ -1,13 +1,17 @@
+import os
+
 import yaml
 import torch
 
-with open(r".\common\characters\stats\_base_value.yaml", 'r', encoding="utf-8") as stream:
+file_name = os.path.join(os.path.dirname(__file__), f'stats')
+
+with open(rf"{file_name}\_base_value.yaml", 'r', encoding="utf-8") as stream:
     base_value = yaml.safe_load(stream)
 
-with open(r".\common\characters\stats\_level_multiplier.yaml", 'r', encoding="utf-8") as stream:
+with open(rf"{file_name}\_level_multiplier.yaml", 'r', encoding="utf-8") as stream:
     level_multiplier = yaml.safe_load(stream)
 
-with open(r".\common\characters\stats\_max_ascension_values.yaml", 'r', encoding="utf-8") as stream:
+with open(rf"{file_name}\_max_ascension_values.yaml", 'r', encoding="utf-8") as stream:
     max_ascension_value = yaml.safe_load(stream)
 
 ascension_value_multiplier = [0, 38/182, 65/182, 101/182, 128/182, 155/182, 1]
