@@ -16,10 +16,9 @@ setuptools.setup(
         "Bug Tracker": "https://github.com/ChenZhang-2000/GenshinTeamDPSCalculator/issues"
     },
     license='GPL',
-    packages=['../GenshinTeamDPSCalculator'],
-             # ['GTDC',
-             #  'common', 'common.artifact', 'common.characters', 'common.enemy', 'common.weapon',
-             #  'common.artifact', 'common.characters.stats', 'common.enemy.stats', 'common.weapon.stats',
-             #  'configs', 'tools'],
+    packages=['GTDC',
+              'GTDC.common', 'GTDC.common.artifact', 'GTDC.common.characters', 'GTDC.common.enemy', 'GTDC.common.weapon',
+              'GTDC.common.artifact', 'GTDC.common.characters.stats', 'GTDC.common.enemy.stats', 'GTDC.common.weapon.stats',
+              'GTDC.configs', 'GTDC.tools'],
     install_requires=['torch', 'numpy', 'pandas', 'matplotlib', 'PyYAML'],
 )
