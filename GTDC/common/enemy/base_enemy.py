@@ -1,7 +1,7 @@
 import json
 import numpy as np
 
-from common.stats import Stats, Buff, BasicBuff, ProportionalBuff, ESTATS_LENGTH, Monster
+from GTDC.common.stats import Stats, Buff, BasicBuff, ProportionalBuff, ESTATS_LENGTH, Monster
 
 
 ENEMY_FACTORY = {}

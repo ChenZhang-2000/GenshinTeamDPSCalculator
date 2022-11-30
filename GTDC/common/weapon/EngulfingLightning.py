@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from .base_weapon import register_weapon, Weapon
-from common.stats import Stats, Buff, BasicBuff, ProportionalBuff
+from GTDC.common.stats import Stats, Buff, BasicBuff, ProportionalBuff
 
 
 class ECtoATK(ProportionalBuff):

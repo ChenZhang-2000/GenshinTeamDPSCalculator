@@ -3,7 +3,7 @@ import numpy as np
 import torch
 
 from . import char_stats
-from common.stats import Stats, Buff, BasicBuff, ProportionalBuff, Skills, PolySkills, SKILL_TYPE_MAP, STATS_LENGTH
+from GTDC.common.stats import Stats, Buff, BasicBuff, ProportionalBuff, Skills, PolySkills, SKILL_TYPE_MAP, STATS_LENGTH
 
 
 CHAR_FACTORY = {}

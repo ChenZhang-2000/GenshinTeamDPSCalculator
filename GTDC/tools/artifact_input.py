@@ -1,8 +1,8 @@
 
 from torch import nn
 
-from common.model import Model
-from common.controller import read_char_excel, read_enemy_excel, read_skill_excel, team_generation
+from GTDC.common.model import Model
+from GTDC.common.controller import read_char_excel, read_enemy_excel, read_skill_excel, team_generation
 
 
 class ArtifactModel(nn.Module):

@@ -7,18 +7,18 @@ from openpyxl.utils.exceptions import InvalidFileException
 import torch
 import pandas as pd
 
-from common import config
-from common.reaction.reaction import REACTION_FACTORY
-from common.exception import InvalidCell, InvalidTitle, InvalidStats, InvalidCharNameInSkillFile, InvalidIndex
-from common.exception import MissingTime, MissingSkills, MissingBuffs, MissingOnField
-from common.exception import invalid_char_file, varify_char_file, invalid_enemy_file, varify_enemy_file
-from common.exception import invalid_skill_index, invalid_skill_file, varify_skill_file
-from common.stats import STATS_LENGTH, Infusion
-from common.model import Model, Team
-from common.characters import CHAR_FACTORY
-from common.weapon import WEAPON_FACTORY
-from common.artifact import ArtifactSet, ARTIFACT_FACTORY
-from common.enemy import ENEMY_FACTORY
+from GTDC.common import config
+from GTDC.common.reaction.reaction import REACTION_FACTORY
+from GTDC.common.exception import InvalidCell, InvalidTitle, InvalidStats, InvalidCharNameInSkillFile, InvalidIndex
+from GTDC.common.exception import MissingTime, MissingSkills, MissingBuffs, MissingOnField
+from GTDC.common.exception import invalid_char_file, varify_char_file, invalid_enemy_file, varify_enemy_file
+from GTDC.common.exception import invalid_skill_index, invalid_skill_file, varify_skill_file
+from GTDC.common.stats import STATS_LENGTH, Infusion
+from GTDC.common.model import Model, Team
+from GTDC.common.characters import CHAR_FACTORY
+from GTDC.common.weapon import WEAPON_FACTORY
+from GTDC.common.artifact import ArtifactSet, ARTIFACT_FACTORY
+from GTDC.common.enemy import ENEMY_FACTORY
 
 
 def team_generation(char_data):

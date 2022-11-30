@@ -1,7 +1,7 @@
 import json
 import torch
 
-from common.stats import Stats, Buff, BasicBuff, ProportionalBuff
+from GTDC.common.stats import Stats, Buff, BasicBuff, ProportionalBuff
 
 
 WEAPON_FACTORY = {}

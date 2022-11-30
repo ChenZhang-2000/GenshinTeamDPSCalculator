@@ -1,7 +1,7 @@
 import json
 import torch
 
-from common.stats import Stats, Buff, BasicBuff, ProportionalBuff, STATS_LENGTH
+from GTDC.common.stats import Stats, Buff, BasicBuff, ProportionalBuff, STATS_LENGTH
 
 
 ARTIFACT_FACTORY = {}

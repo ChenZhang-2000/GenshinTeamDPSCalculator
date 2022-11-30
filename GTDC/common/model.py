@@ -5,9 +5,9 @@ import pandas as pd
 import torch
 from torch.nn.functional import one_hot
 
-from common.characters.base_char import Character
-from common.stats import BasicBuff, ProportionalBuff, Stats, Debuff
-from common.exception import InvalidSkillTime
+from GTDC.common.characters.base_char import Character
+from GTDC.common.stats import BasicBuff, ProportionalBuff, Stats, Debuff
+from GTDC.common.exception import InvalidSkillTime
 
 
 class Team:

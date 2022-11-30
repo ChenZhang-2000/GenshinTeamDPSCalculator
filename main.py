@@ -3,14 +3,14 @@ import torch
 import yaml
 import matplotlib.pyplot as plt
 
-from common.stats import STATS_LENGTH, Buff, Stats
-from common.model import Team, Model
-from common.artifact import ARTIFACT_FACTORY, ArtifactSet
-from common.characters import CHAR_FACTORY
-from common.enemy import ENEMY_FACTORY
-from common.weapon import WEAPON_FACTORY
+from GTDC.common.stats import STATS_LENGTH, Buff, Stats
+from GTDC.common.model import Team, Model
+from GTDC.common.artifact import ARTIFACT_FACTORY, ArtifactSet
+from GTDC.common.characters import CHAR_FACTORY
+from GTDC.common.enemy import ENEMY_FACTORY
+from GTDC.common.weapon import WEAPON_FACTORY
 
-from common.controller import read_char_excel, read_enemy_excel, team_generation, read_skill_excel, terminal_ui
+from GTDC.common.controller import read_char_excel, read_enemy_excel, team_generation, read_skill_excel, terminal_ui
 
 
 def main():

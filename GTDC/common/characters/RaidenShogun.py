@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 from .base_char import register_char, Character
-from common.stats import Stats, Buff, BasicBuff, ProportionalBuff, Infusion, Skills, PolySkills
+from GTDC.common.stats import Stats, Buff, BasicBuff, ProportionalBuff, Infusion, Skills, PolySkills
 
 
 def calculate(self, stats, enemy):

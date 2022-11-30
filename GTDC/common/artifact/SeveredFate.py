@@ -1,7 +1,7 @@
 import torch
 
 from .base_artifact import register_artifact, Artifact
-from common.stats import Stats, Buff, BasicBuff, ProportionalBuff
+from GTDC.common.stats import Stats, Buff, BasicBuff, ProportionalBuff
 
 
 class ECtoDB(ProportionalBuff):
