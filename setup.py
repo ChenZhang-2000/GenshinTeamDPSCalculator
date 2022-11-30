@@ -20,5 +20,7 @@ setuptools.setup(
               'GTDC.common', 'GTDC.common.artifact', 'GTDC.common.characters', 'GTDC.common.enemy', 'GTDC.common.weapon',
               'GTDC.common.artifact', 'GTDC.common.characters.stats', 'GTDC.common.enemy.stats', 'GTDC.common.weapon.stats',
               'GTDC.configs', 'GTDC.tools'],
+    include_package_data=True,
+    package_data={"mypkg": ["*.yaml", "*.json"]},
     install_requires=['torch', 'numpy', 'pandas', 'matplotlib', 'PyYAML'],
 )
