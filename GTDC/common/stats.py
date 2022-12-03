@@ -229,7 +229,7 @@ class ProportionalBuff(Buff):
 
         stats: numpy array of team stats with shape 4 x stats_length
         """
-        stats = torch.clone(stats[self.char.idx])
+        # stats = torch.clone(stats[self.char.idx])
         # stats[:, [1, 4, 7]] += (1 + stats[:, [2, 5, 8]] / 100) * stats[:, [0, 3, 6]]
         # stats[:, [2, 5, 8]] = 0
 
@@ -238,7 +238,7 @@ class ProportionalBuff(Buff):
         # a = stats.data + mask
         # print(a)
 
-        self.data = self.func(stats.data)
+        self.data = self.func(stats[self.char.idx])
         # print(self.data.shape)
 
 
