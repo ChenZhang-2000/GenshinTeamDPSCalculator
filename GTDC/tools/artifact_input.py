@@ -9,7 +9,8 @@ class ArtifactModel(nn.Module):
     def __init__(self, char_dir, enemy_dir, skill_dir):
         super(ArtifactModel, self).__init__()
         self.char_data = read_char_excel(char_dir)
-        self.enemy = read_enemy_excel(enemy_dir)[0]
+        enemies = read_enemy_excel(enemy_dir)
+        self.enemy = enemies[list(enemies.keys())[0]]
 
         self.team = team_generation(self.char_data)
         skill_df, buff_df, infusion_df = read_skill_excel(self.team, skill_dir)
