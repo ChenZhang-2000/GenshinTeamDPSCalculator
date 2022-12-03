@@ -1,7 +1,7 @@
 import json
 import os
 
-import numpy as np
+import torch
 
 from GTDC.common.stats import Stats, Buff, BasicBuff, ProportionalBuff, ESTATS_LENGTH, Monster
 
@@ -22,7 +22,7 @@ class Enemy(Monster):
     def __init__(self, level):
         file_name = os.path.join(os.path.dirname(__file__), f'stats\\{self.__class__.__name__}.json')
         data = json.load(open(file_name))
-        super().__init__(array=np.array(data['stats']).reshape(1, Monster.length))
+        super().__init__(array=torch.tensor(data['stats']).reshape(1, Monster.length))
         self.stats = self.data - 0
         self.dynamic_stats = self.data - 0
         self.level = level
