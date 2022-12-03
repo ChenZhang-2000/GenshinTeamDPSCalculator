@@ -487,7 +487,7 @@ class PolySkills:
             elif map_sum == 0:
                 pass
             else:
-                infusion = infusions[infusion_map.argmax()]
+                infusion = infusions[infusion_map.int().argmax()]
                 target_skill = infusion.skills_infused[self.skill_type]
                 target_skill.update(strike=self.strike)
                 return target_skill.damage(team, enemy, buffs, reaction, on_field_idx=on_field_idx)
