@@ -140,7 +140,7 @@ class Stats:
         return Stats(torch.clone(self.data))
 
     def sum(self):
-        self.data = np.sum(self.data, axis=0).reshape((1, STATS_LENGTH))
+        self.data = torch.sum(self.data, dim=0).reshape((1, STATS_LENGTH))
 
     def atk(self):
         assert self.data.shape[0] == 1
@@ -409,8 +409,8 @@ class Skills:
         # print(infusion)
         if not infusions is None:
             infusion_check = lambda infusion: self.char.idx == infusion.char.idx and self.skill_type in infusion.skill_types_from
-            infusion_map = np.array(list(map(infusion_check, infusions)))
-            map_sum = np.sum(infusion_map.astype(int))
+            infusion_map = torch.tensor(list(map(infusion_check, infusions)))
+            map_sum = torch.sum(infusion_map.int())
             if map_sum > 1:
                 raise MultipleInfusions('multiple valid infusions are found')
             elif map_sum == 0:
@@ -480,8 +480,8 @@ class PolySkills:
             #     print(self.char.idx == infusion.char.idx)
             #     print(self.skill_type in infusion.skill_types_from)
             infusion_check = lambda infusion: self.char.idx == infusion.char.idx and self.skill_type in infusion.skill_types_from
-            infusion_map = np.array(list(map(infusion_check, infusions)))
-            map_sum = np.sum(infusion_map.astype(int))
+            infusion_map = torch.tensor(list(map(infusion_check, infusions)))
+            map_sum = torch.sum(infusion_map.int())
             if map_sum > 1:
                 raise MultipleInfusions('multiple valid infusions are found')
             elif map_sum == 0:
