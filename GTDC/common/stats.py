@@ -487,6 +487,7 @@ class PolySkills:
             elif map_sum == 0:
                 pass
             else:
+                print(infusion_map)
                 infusion = infusions[infusion_map.int().argmax()]
                 target_skill = infusion.skills_infused[self.skill_type]
                 target_skill.update(strike=self.strike)
