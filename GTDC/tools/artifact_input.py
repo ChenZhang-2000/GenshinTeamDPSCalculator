@@ -8,7 +8,11 @@ from GTDC.common.controller import read_char_excel, read_enemy_excel, read_skill
 class ArtifactModel(nn.Module):
     def __init__(self, char_dir, enemy_dir, skill_dir, char_idx=0):
         super(ArtifactModel, self).__init__()
+        self.char_dir = char_dir
+        self.enemy_dir = enemy_dir
+        self.skill_dir = skill_dir
         self.char_idx = char_idx
+
         self.char_data = read_char_excel(char_dir)
         enemies = read_enemy_excel(enemy_dir)
         self.enemy = enemies[list(enemies.keys())[0]]
