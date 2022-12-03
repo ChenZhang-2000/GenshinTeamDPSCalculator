@@ -416,7 +416,7 @@ class Skills:
             elif map_sum == 0:
                 pass
             else:
-                infusion = infusions[infusion_map.argmax()]
+                infusion = infusions[infusion_map.int().argmax().item()]
                 return infusion.skills_infused[self.skill_type].damage(team, enemy, buffs, reaction)
 
         # print(self.char.idx)
