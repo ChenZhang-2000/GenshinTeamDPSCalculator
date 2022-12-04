@@ -108,7 +108,6 @@ def read_char_excel(file_direc=r".\data\characters.xlsx"):
                      'artifact': {'two_set': config.artifact_map[char_data['artifact_two']],
                                   'four_set': config.artifact_map[char_data['artifact_four']],
                                   'stats': artifact_data.reshape(1, STATS_LENGTH)}}
-        # print(char_data['char']['skill_level'])
         chars.append(char_data)
     return chars
 

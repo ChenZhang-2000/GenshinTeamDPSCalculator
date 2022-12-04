@@ -157,17 +157,17 @@ class Character(object):
         self.weapon = weapon
         self.artifact = artifact
 
-        self.skill_a = PolySkills(self, [sum(i) for i in self.scaling['a'][self.skill_level[0]]], 'a', 'physical')
-        self.skill_A = Skills(self, sum(self.scaling['A'][self.skill_level[0]]), 'A', 'physical')
-        self.skill_pl = Skills(self, sum(self.scaling['pl'][self.skill_level[0]]), 'pl', 'physical')
-        self.skill_PL_low = Skills(self, self.scaling['PL'][self.skill_level[0]][0], 'PL_low', 'physical')
-        self.skill_PL_high = Skills(self, self.scaling['PL'][self.skill_level[0]][1], 'PL_high', 'physical')
+        self.skill_a = PolySkills(self, [sum(i) for i in self.scaling['a'][self.skill_level[0]-1]], 'a', 'physical')
+        self.skill_A = Skills(self, sum(self.scaling['A'][self.skill_level[0]-1]), 'A', 'physical')
+        self.skill_pl = Skills(self, sum(self.scaling['pl'][self.skill_level[0]-1]), 'pl', 'physical')
+        self.skill_PL_low = Skills(self, self.scaling['PL'][self.skill_level[0]-1][0], 'PL_low', 'physical')
+        self.skill_PL_high = Skills(self, self.scaling['PL'][self.skill_level[0]-1][1], 'PL_high', 'physical')
         # print(self.scaling['e'][self.skill_level[1]])
-        self.skill_e = Skills(self, sum(self.scaling['e'][self.skill_level[1]][-1]), 'e', self.element)
+        self.skill_e = Skills(self, sum(self.scaling['e'][self.skill_level[1]-1][-1]), 'e', self.element)
         # print(self.scaling['E'][self.skill_level[1]][-1])
-        self.skill_E = Skills(self, sum(self.scaling['E'][self.skill_level[1]][-1]), 'E', self.element)
-        self.skill_q = Skills(self, sum(self.scaling['q'][self.skill_level[2]][-1]), 'q', self.element)
-        self.skill_Q = Skills(self, sum(self.scaling['Q'][self.skill_level[2]][-1]), 'Q', self.element)
+        self.skill_E = Skills(self, sum(self.scaling['E'][self.skill_level[1]-1][-1]), 'E', self.element)
+        self.skill_q = Skills(self, sum(self.scaling['q'][self.skill_level[2]-1][-1]), 'q', self.element)
+        self.skill_Q = Skills(self, sum(self.scaling['Q'][self.skill_level[2]-1][-1]), 'Q', self.element)
         self.skill_p = Skills(self, sum(self.scaling['p'][-1]), 'p', self.element)
         self.skill_P = Skills(self, sum(self.scaling['P'][-1]), 'P', self.element)
 

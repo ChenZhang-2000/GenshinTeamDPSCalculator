@@ -40,7 +40,9 @@ class RaidenInfusion(Infusion):
                                 'pl': Skills(char, sum(scaling[6])+bonus, 'pl', 'electro'),
                                 'PL_low': Skills(char, scaling[7][0]+bonus, 'PL_low', 'electro'),
                                 'PL_high': Skills(char, scaling[7][1]+bonus, 'PL_high', 'electro')})
+        print(self.char.skill_q.scale)
         self.char.skill_q.scale += scaling[-2][0] * stacks
+        print(self.char.skill_q.scale)
 
     def update(self, *args, **kwargs):
         pass
@@ -143,11 +145,11 @@ class RaidenShogun(Character):
                                                       0.,
                                                       0.]]))
 
-        self.skill_e = Skills(self, self.scaling['e'][self.skill_level[1]][1][0], 'e', 'electro')
-        self.skill_e.first_skill = Skills(self, self.scaling['e'][self.skill_level[1]][0][0], 'e', 'electro')
+        self.skill_e = Skills(self, self.scaling['e'][self.skill_level[1]-1][1][0], 'e', 'electro')
+        self.skill_e.first_skill = Skills(self, self.scaling['e'][self.skill_level[1]-1][0][0], 'e', 'electro')
         self.skill_e.first_particular = True
 
-        self.infusion = RaidenInfusion(self, self.scaling['other'][self.skill_level[2]], 60)
+        self.infusion = RaidenInfusion(self, self.scaling['other'][self.skill_level[2]-1], 60)
 
         #     Infusion(self, {'a': PolySkills(self, [sum(i) for i in self.scaling['other'][:5]], 'a', 'electro'),
         #                                 'A': Skills(self, sum(self.scaling['other'][5]), 'A', 'electro'),
