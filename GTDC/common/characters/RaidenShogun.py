@@ -40,9 +40,7 @@ class RaidenInfusion(Infusion):
                                 'pl': Skills(char, sum(scaling[6])+bonus, 'pl', 'electro'),
                                 'PL_low': Skills(char, scaling[7][0]+bonus, 'PL_low', 'electro'),
                                 'PL_high': Skills(char, scaling[7][1]+bonus, 'PL_high', 'electro')})
-        print(self.char.skill_q.scale)
         self.char.skill_q.scale += scaling[-2][0] * stacks
-        print(self.char.skill_q.scale)
 
     def update(self, *args, **kwargs):
         pass
