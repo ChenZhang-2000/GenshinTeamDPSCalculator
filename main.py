@@ -24,6 +24,7 @@ if __name__ == "__main__":
     for i in range(len(models)):
         total_dmg = damage_result[i]
         model = models[i]
+        # print(model._dynamic_stats)
         print(total_dmg[-1])
         plt.plot(model.times, total_dmg)
         plt.xlabel('Time')

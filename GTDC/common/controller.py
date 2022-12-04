@@ -231,7 +231,10 @@ def decode_skill_block(block, times, row_char_map, data_frame, mode):
                 pass
             else:
                 if cell.value is None:
-                    pass
+                    if start:
+                        end_time = times[i]
+                        write_df(data_frame, objects, start_time, end_time, mode)
+                        start = False
                 else:
                     if start:
                         end_time = times[i]
