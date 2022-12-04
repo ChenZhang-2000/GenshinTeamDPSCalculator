@@ -26,6 +26,9 @@ def calculate(self, stats, enemy):
     defence = enemy[:, 1] * (1 - enemy[:, 11] / 100) * 0.4
     def_factor = (1 + self.char.level/100) * 500 / (defence * (1 + enemy.level/100) + (1 + self.char.level/100) * 500)
 
+    print(f"Scale: {scale}\nAttack: {atk.item()}\nAdditional: {additional.item()}\n" +
+          f"Critical: {critical.item()}\nDamage Bonus: {dmg_bonus.item()}\n" +
+          f"Resistance: {resistance[0]}\nDefence: {def_factor.item()}\n")
     return (scale/100 * atk + additional) * critical * dmg_bonus * resistance * def_factor
 
 

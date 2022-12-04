@@ -41,8 +41,8 @@ class Team:
                     raise TypeError
         self.num_chars = len(chars)
         self.stats = Stats(torch.stack(list(map(lambda c: c.stats.data.flatten(), self.chars))))
-        self._static_stats = Stats(torch.clone(self.stats.data))
-        self._dynamic_stats = Stats(torch.clone(self.stats.data))
+        self._static_stats = Stats(self.stats.data + 0)
+        self._dynamic_stats = Stats(self.stats.data + 0)
 
     def __getitem__(self, item):
         return self.chars[item]

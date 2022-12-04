@@ -3,13 +3,13 @@ import pandas as pd
 import torch
 from matplotlib import pyplot as plt
 
-from common.stats import STATS_LENGTH, Buff
-from common.model import Team, Model
-from common.artifact import ARTIFACT_FACTORY, ArtifactSet
-from common.characters import CHAR_FACTORY
-from common.enemy import ENEMY_FACTORY
-from common.weapon import WEAPON_FACTORY
-from common.controller import team_generation, read_char_excel, read_enemy_excel
+from GTDC.common.stats import STATS_LENGTH, Buff
+from GTDC.common.model import Team, Model
+from GTDC.common.artifact import ARTIFACT_FACTORY, ArtifactSet
+from GTDC.common.characters import CHAR_FACTORY
+from GTDC.common.enemy import ENEMY_FACTORY
+from GTDC.common.weapon import WEAPON_FACTORY
+from GTDC.common.controller import team_generation, read_char_excel, read_enemy_excel
 
 
 if __name__ == "__main__":
@@ -50,7 +50,6 @@ if __name__ == "__main__":
                             (weapon.buffs[0], 0, 10.5)], columns=['buff', 'start_time', 'end_time'])
     infusion_df = pd.DataFrame([(raiden.infusion, 0, 10.5)], columns=['infusion', 'start_time', 'end_time'])
 
-    print(buff_df)
 
     model = Model(team=team, enemy=enemyies['Hilichurl'],
                   skills=skill_df,
