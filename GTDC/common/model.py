@@ -114,7 +114,6 @@ class Model:
         self.times = sorted(list(set(self.times)))
 
         self.inv_time = {time: i for i, time in enumerate(self.times)}
-        print()
 
         self.skills_mat = np.zeros((len(self.skills_data), len(self.times)), dtype=int)
 

@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name='GTDC',
-    version='0.1.3.1',
+    version='0.1.3.2',
     author='Chen Zhang',
     author_email='academic@chenzhang.me',
     description='Testing installation of Package',
