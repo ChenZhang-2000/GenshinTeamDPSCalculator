@@ -27,11 +27,11 @@ class ArtifactModel(nn.Module):
     def change_artifact(self, stats):
         self.char_data[self.char_idx]['artifact']['stats'] = stats
         self.team = team_generation(self.char_data)
-        # skill_df, buff_df, infusion_df = read_skill_excel(self.team, self.skill_dir)
+        skill_df, buff_df, infusion_df = read_skill_excel(self.team, self.skill_dir)
         self.model = Model(team=self.team, enemy=self.enemy,
-                           skills=self.skill_df,
-                           buffs=self.buff_df,
-                           infusions=self.infusion_df)
+                           skills=skill_df,
+                           buffs=buff_df,
+                           infusions=infusion_df)
 
     def forward(self, affix):
         self.change_artifact(affix)
