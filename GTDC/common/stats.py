@@ -21,6 +21,20 @@ STATS_IDX_MAP = ["基础攻击力", "固定攻击力加成", "百分比攻击力
                  "物理伤害加成", "物理抗性",
                  "其他增伤", "附加伤害"]
 
+STATS_IDX_MAP = ["Base ATK", "ATK", "Percentage ATK",
+                 "Base DEF", "DEF", "Percentage DEF",
+                 "Base HP", "HP", "Percentage HP",
+                 "Element Mastery", "Crit Rate ", "Crit Dmg", "Healing Bonus", "Energy Recharge", "Shield Strength",
+                 "Pyro Damage Bonus", "Pyro Resistence",
+                 "Hydro Damage Bonus", "Hydro Resistence",
+                 "Electro Damage Bonus", "Electro Resistence",
+                 "Anemo Damage Bonus", "Anemo Resistence",
+                 "Cyro Damage Bonus", "Cyro Resistence",
+                 "Geo Damage Bonus", "Geo Resistence",
+                 "Dendro Damage Bonus", "Dendro Resistence",
+                 "Physical Damage Bonus", "Physical Resistence",
+                 "Other Dmg Bonus", "Additional Dmg Bonus"]
+
 
 class MultipleInfusions(Exception):
     pass
