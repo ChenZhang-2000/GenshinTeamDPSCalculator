@@ -23,9 +23,11 @@ class Weapon(object):
         file_name = os.path.join(os.path.dirname(__file__), f'stats\\{self.__class__.__name__}.json')
         data = json.load(open(file_name))
 
+        self.affix = affix
         self.stats = Stats(torch.tensor(data['stats']).reshape(1, Stats.length))
         self.permanent_buffs = []
         self.buffs = []
+        self.skills = []
 
     def init_char(self, char):
         self.char = char

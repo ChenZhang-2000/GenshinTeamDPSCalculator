@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 import torch
 
@@ -21,19 +23,19 @@ STATS_IDX_MAP = ["基础攻击力", "固定攻击力加成", "百分比攻击力
                  "物理伤害加成", "物理抗性",
                  "其他增伤", "附加伤害"]
 
-STATS_IDX_MAP = ["Base ATK", "ATK", "Percentage ATK",
-                 "Base DEF", "DEF", "Percentage DEF",
-                 "Base HP", "HP", "Percentage HP",
-                 "Element Mastery", "Crit Rate ", "Crit Dmg", "Healing Bonus", "Energy Recharge", "Shield Strength",
-                 "Pyro Damage Bonus", "Pyro Resistence",
-                 "Hydro Damage Bonus", "Hydro Resistence",
-                 "Electro Damage Bonus", "Electro Resistence",
-                 "Anemo Damage Bonus", "Anemo Resistence",
-                 "Cyro Damage Bonus", "Cyro Resistence",
-                 "Geo Damage Bonus", "Geo Resistence",
-                 "Dendro Damage Bonus", "Dendro Resistence",
-                 "Physical Damage Bonus", "Physical Resistence",
-                 "Other Dmg Bonus", "Additional Dmg Bonus"]
+STATS_IDX_MAP_EN = ["Base ATK", "ATK", "Percentage ATK",
+                    "Base DEF", "DEF", "Percentage DEF",
+                    "Base HP", "HP", "Percentage HP",
+                    "Element Mastery", "Crit Rate ", "Crit Dmg", "Healing Bonus", "Energy Recharge", "Shield Strength",
+                    "Pyro Damage Bonus", "Pyro Resistence",
+                    "Hydro Damage Bonus", "Hydro Resistence",
+                    "Electro Damage Bonus", "Electro Resistence",
+                    "Anemo Damage Bonus", "Anemo Resistence",
+                    "Cyro Damage Bonus", "Cyro Resistence",
+                    "Geo Damage Bonus", "Geo Resistence",
+                    "Dendro Damage Bonus", "Dendro Resistence",
+                    "Physical Damage Bonus", "Physical Resistence",
+                    "Other Dmg Bonus", "Additional Dmg Bonus"]
 
 
 class MultipleInfusions(Exception):
@@ -194,7 +196,7 @@ class Buff(Stats):
         return f"Character: {type(self.char).__name__}\nBuff: {type(self).__name__}\n" + f"Value:\n  {self.data.numpy()}\n"
 
     def valid(self, skill, team, on_field):
-        return True
+        return self.skill_type == 'all' or self.skill_type == skill.skill_type
 
     def update(self, *args, **kwargs):
         pass
@@ -257,13 +259,18 @@ class ProportionalBuff(Buff):
 
 
 class Infusion:
-    def __init__(self, char, skill_infused: dict):
+    def __init__(self, char, skill_infused: dict, self_infuse=True, infuse_element=None):
         """
         skill_type_from: the skill type to convert
         """
         self.char = char
         self.skill_types_from = skill_infused.keys()
         self.skills_infused = skill_infused
+        self.self_infuse = self_infuse
+        self.infuse_element = infuse_element
+
+    def check(self, skill, team=None):
+        return True
 
 
 class Reaction:
@@ -422,17 +429,40 @@ class Skills:
         reaction_factor = 1.
         # print(infusion)
         if not infusions is None:
-            infusion_check = lambda infusion: self.char.idx == infusion.char.idx and self.skill_type in infusion.skill_types_from
-            infusion_map = torch.tensor(list(map(infusion_check, infusions)))
-            map_sum = torch.sum(infusion_map.int())
-            if map_sum > 1:
-                raise MultipleInfusions('multiple valid infusions are found')
-            elif map_sum == 0:
+            infusion_check = lambda infusion: infusion.check(self, team)
+            infusion_map = np.array(list(map(infusion_check, infusions)))
+            map_sum = np.sum(infusion_map.astype(int))
+            if map_sum == 0:
                 pass
             else:
-                infusion = infusions[infusion_map.int().argmax().item()]
-                return infusion.skills_infused[self.skill_type].damage(team, enemy, buffs, reaction)
+                multiple_self_infuse = False
+                found_self_infuse = False
+                infusion = None
 
+                for i, inf in enumerate(infusions):
+                    if infusion_map[i]:
+                        if infusion is None:
+                            infusion = inf
+
+                        if inf.self_infuse:
+                            if found_self_infuse:
+                                multiple_self_infuse = True
+                                break
+                            else:
+                                infusion = inf
+                                found_self_infuse = True
+
+                if multiple_self_infuse:
+                    raise MultipleInfusions('multiple valid unoverridable infusions are found')
+
+                if infusion.self_infuse:
+                    return infusion.skills_infused[self.skill_type].damage(team, enemy, buffs, reaction)
+                else:
+                    infused_skill = copy.copy(self)
+                    infused_skill.char = self.char
+                    infused_skill.element_type = infusion.infuse_element
+                    return infused_skill.damage(team, enemy, buffs, reaction)
+                    # infusion.infuse_element
         # print(self.char.idx)
         # print(stats)
         first_dmg = 0
@@ -505,6 +535,7 @@ class PolySkills:
                 target_skill = infusion.skills_infused[self.skill_type]
                 target_skill.update(strike=self.strike)
                 return target_skill.damage(team, enemy, buffs, reaction, on_field_idx=on_field_idx)
+
         for i in range(self.strike):
             dmg += self.skills[i % self.strike_length].damage(team, enemy, buffs, reaction, infusions, on_field_idx=on_field_idx)
         return dmg
@@ -515,6 +546,7 @@ class PolySkills:
             pass
         else:
             self.strike = int(strike)
+
 
 class TransformativeReaction(Reaction, Skills):
     pass

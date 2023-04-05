@@ -30,14 +30,10 @@ class Team:
             for b in char.weapon.permanent_buffs + char.artifact.permanent_buffs:
 
                 if isinstance(b, BasicBuff):
-                    # print(b)
                     char.stats += b
                 elif isinstance(b, ProportionalBuff):
-                    # print(b)
                     self.permanent_prop_buffs[i].append(b)
                 else:
-                    # print(b)
-                    # pass
                     raise TypeError
         self.num_chars = len(chars)
         self.stats = Stats(torch.stack(list(map(lambda c: c.stats.data.flatten(), self.chars))))

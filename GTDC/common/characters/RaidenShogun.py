@@ -39,11 +39,14 @@ class RaidenInfusion(Infusion):
                                 'A': Skills(char, sum(scaling[5])+bonus*2, 'A', 'electro'),
                                 'pl': Skills(char, sum(scaling[6])+bonus, 'pl', 'electro'),
                                 'PL_low': Skills(char, scaling[7][0]+bonus, 'PL_low', 'electro'),
-                                'PL_high': Skills(char, scaling[7][1]+bonus, 'PL_high', 'electro')})
+                                'PL_high': Skills(char, scaling[7][1]+bonus, 'PL_high', 'electro')}, self_infuse=True)
         self.char.skill_q.scale += scaling[-2][0] * stacks
 
     def update(self, *args, **kwargs):
         pass
+
+    def check(self, skill, team=None):
+        return (self.char.idx == skill.char.idx) and (skill.skill_type in self.skill_types_from)
 
 
 class Buff_e(BasicBuff):
@@ -166,7 +169,7 @@ class RaidenShogun(Character):
 
         self.buffs = {"e": self.buff_e,
                       "P": self.buff_P,
-                      "w": self.weapon.buffs,
+                      # "w": self.weapon.buffs,
                       "infusion": self.infusion,
                       "附魔": self.infusion}
 
