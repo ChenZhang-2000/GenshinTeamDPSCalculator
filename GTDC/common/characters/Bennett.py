@@ -9,12 +9,12 @@ from GTDC.common.stats import Stats, Buff, BasicBuff, ProportionalBuff, Infusion
 
 class Buffq(ProportionalBuff):
     def __init__(self, char):
-        scale = char.scaling['other'][char.skill_level[2]-1][0]
+        scale = char.scaling['other'][char.skill_level[2]-1][0]/100
         if char.constellation >= 1:
-            scale += 20
+            scale += 0.2
         array = torch.sparse_coo_tensor([[1], [0]],
                                         [scale],
-                                        (Stats.length, Stats.length)).double()
+                                        (Stats.length, Stats.length))
         super().__init__(char=char, array=array)
 
     def valid(self, skill, team, on_field):

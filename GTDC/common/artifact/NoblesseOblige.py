@@ -4,6 +4,7 @@ from .base_artifact import register_artifact, Artifact
 from GTDC.common.stats import Stats, Buff, BasicBuff, ProportionalBuff
 
 
+@register_artifact
 class NoblesseOblige(Artifact):
     def __init__(self, char):
         super().__init__(char)

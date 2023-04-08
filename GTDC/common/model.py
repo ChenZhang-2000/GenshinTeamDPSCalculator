@@ -189,11 +189,12 @@ class Model:
 
             # one hot encoding for the time t
             t = one_hot(torch.tensor(self.inv_time[start_time]), t_max).numpy()
+            # print(t)
 
             # skill start at t iff skill is 1 on time t and 0 on time t-1
+            # print(self.skills_mat)
             valid_skills_mask = (self.skills_mat@t) > 0
             valid_skills_mask *= (self.skills_mat@t_last) == 0
-            # print(valid_skills_mask)
 
             # getting the selected time matrix and data
             valid_skills_mat = self.skills_mat[valid_skills_mask]
@@ -202,31 +203,45 @@ class Model:
             t_last = t
 
             # create mask for buffs base on their type
+            # print(self.buffs_data['buff'])
             basic_buffs_mask = list(map(lambda y: isinstance(y, BasicBuff), self.buffs_data['buff']))
             proportional_buffs_mask = list(map(lambda y: isinstance(y, ProportionalBuff), self.buffs_data['buff']))
             de_buffs_mask = list(map(lambda y: isinstance(y, Debuff), self.buffs_data['buff']))
 
             # create mask for buffs and infusions based on time of the skills
-            valid_buffs_mask = (self.buffs_mat@valid_skills_mat.T) > 0
-            # print(valid_buffs_mask.shape)
-            valid_infusions_mask = (self.infusions_mat@valid_skills_mat.T) > 0
+            # print(self.buffs_mat)
+            # print(valid_skills_mat)
+            # valid_buffs_mask = (self.buffs_mat@valid_skills_mat.T) > 0
+            valid_buffs_mask = self.buffs_mat[:, t.astype(bool)]
+            # print(proportional_buffs_mask)
+            # print(valid_buffs_mask)
+
+            # valid_infusions_mask = (self.infusions_mat@valid_skills_mat.T) > 0
+            valid_infusions_mask = self.infusions_mat[:, t.astype(bool)]
+            # print(valid_infusions_mask)
 
             # iterate over the skills start at this time
             for idx, (_, valid_skill) in enumerate(valid_skills_data.iterrows()):
                 # print(idx)
                 # mask of buffs and infusions for the skill
-                valid_buff_mask = valid_buffs_mask[:, idx]
-                valid_infusion_mask = valid_infusions_mask[:, idx]
+                valid_buff_mask = valid_buffs_mask[:, 0]
+                # print(valid_buff_mask)
+                # print(valid_buff_mask * basic_buffs_mask)
+                # print(valid_buff_mask * proportional_buffs_mask)
+                # print(valid_buff_mask * de_buffs_mask)
+                valid_infusion_mask = valid_infusions_mask[:, 0]
 
-                buffs = (list(self.buffs_data['buff'][valid_buff_mask*basic_buffs_mask]),
-                         list(self.buffs_data['buff'][valid_buff_mask*proportional_buffs_mask]),
-                         list(self.buffs_data['buff'][valid_buff_mask*de_buffs_mask]))
-                infusion = self.infusions_data['infusion'][valid_infusion_mask]
+                # print(self.buffs_data['buff'])
+                # print(self.buffs_data['buff'][valid_buff_mask * basic_buffs_mask])
+                buffs = (list(self.buffs_data['buff'][(valid_buff_mask*basic_buffs_mask).astype(bool)]),
+                         list(self.buffs_data['buff'][(valid_buff_mask*proportional_buffs_mask).astype(bool)]),
+                         list(self.buffs_data['buff'][(valid_buff_mask*de_buffs_mask).astype(bool)]))
+                infusion = self.infusions_data['infusion'][valid_infusion_mask.astype(bool)]
                 skill = valid_skill['skill']
 
                 # calculate damages
                 # print(infusion)
-                # print(skill)
+                # print(buffs)
                 dmg = skill.damage(team=self.team, enemy=self.enemy, buffs=buffs, reaction=valid_skill['reaction'],
                                    infusions=infusion, **(valid_skill['kwarg']),
                                    on_field_idx=self.team.on_field[self.inv_time[start_time]])

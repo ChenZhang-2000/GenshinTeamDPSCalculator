@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import yaml
 import matplotlib.pyplot as plt
+from matplotlib import font_manager
 
 from GTDC.common.stats import STATS_LENGTH, Buff, Stats
 from GTDC.common.model import Team, Model
@@ -12,6 +13,9 @@ from GTDC.common.weapon import WEAPON_FACTORY
 
 from GTDC.common.controller import read_char_excel, read_enemy_excel, team_generation, read_skill_excel, terminal_ui
 
+fontP = font_manager.FontProperties()
+fontP.set_family('SimHei')
+fontP.set_size(14)
 
 def main():
 
@@ -20,14 +24,16 @@ def main():
 
 if __name__ == "__main__":
     # main()
-    damage_result, models = terminal_ui()
-    for i in range(len(models)):
-        total_dmg = damage_result[i]
-        model = models[i]
-        # print(model._dynamic_stats)
-        print(total_dmg[-1])
-        plt.plot(model.times, total_dmg)
-        plt.xlabel('Time')
-        plt.ylabel('DMG')
+    damage_result, models_x_enemies, ws_names, enemy_names = terminal_ui()
+    for i, enemy_name in enumerate(enemy_names):
+        for j in range(len(models_x_enemies[0])):
+            total_dmg = damage_result[i][j]
+            model = models_x_enemies[i][j]
+            # print(total_dmg[-1])
+            plt.plot(model.times, total_dmg)
+            plt.xlabel('Time')
+            plt.ylabel('DMG')
+        plt.title(f"Enemy: {enemy_name}")
+        plt.legend(ws_names, prop=fontP)
         plt.show()
 

@@ -269,6 +269,9 @@ class Infusion:
         self.self_infuse = self_infuse
         self.infuse_element = infuse_element
 
+    def update(self, *args, **kwargs):
+        pass
+
     def check(self, skill, team=None):
         return True
 
@@ -427,7 +430,6 @@ class Skills:
 
         """
         reaction_factor = 1.
-        # print(infusion)
         if not infusions is None:
             infusion_check = lambda infusion: infusion.check(self, team)
             infusion_map = np.array(list(map(infusion_check, infusions)))
@@ -465,6 +467,7 @@ class Skills:
                     # infusion.infuse_element
         # print(self.char.idx)
         # print(stats)
+        # print(buffs)
         first_dmg = 0
         if self.first_particular and self._num_calculated == 0:
             self._num_calculated += 1
@@ -519,22 +522,56 @@ class PolySkills:
 
     def damage(self, team, enemy, buffs: ([], [], []), reaction, infusions=None, on_field_idx=0):
         dmg = 0
-        if not (infusions is None):
-            # for infusion in infusions:
-            #     print(self.char.idx == infusion.char.idx)
-            #     print(self.skill_type in infusion.skill_types_from)
-            infusion_check = lambda infusion: self.char.idx == infusion.char.idx and self.skill_type in infusion.skill_types_from
-            infusion_map = torch.tensor(list(map(infusion_check, infusions)))
-            map_sum = torch.sum(infusion_map.int())
-            if map_sum > 1:
-                raise MultipleInfusions('multiple valid infusions are found')
-            elif map_sum == 0:
+        if not infusions is None:
+            infusion_check = lambda infusion: infusion.check(self, team)
+            infusion_map = np.array(list(map(infusion_check, infusions)))
+            map_sum = np.sum(infusion_map.astype(int))
+            if map_sum == 0:
                 pass
             else:
-                infusion = infusions[infusion_map.int().argmax().item()]
-                target_skill = infusion.skills_infused[self.skill_type]
-                target_skill.update(strike=self.strike)
-                return target_skill.damage(team, enemy, buffs, reaction, on_field_idx=on_field_idx)
+                multiple_self_infuse = False
+                found_self_infuse = False
+                infusion = None
+
+                for i, inf in enumerate(infusions):
+                    if infusion_map[i]:
+                        if infusion is None:
+                            infusion = inf
+
+                        if inf.self_infuse:
+                            if found_self_infuse:
+                                multiple_self_infuse = True
+                                break
+                            else:
+                                infusion = inf
+                                found_self_infuse = True
+
+                if multiple_self_infuse:
+                    raise MultipleInfusions('multiple valid unoverridable infusions are found')
+
+                if infusion.self_infuse:
+                    return infusion.skills_infused[self.skill_type].damage(team, enemy, buffs, reaction)
+                else:
+                    infused_skill = copy.copy(self)
+                    infused_skill.char = self.char
+                    infused_skill.element_type = infusion.infuse_element
+                    return infused_skill.damage(team, enemy, buffs, reaction)
+        # if not (infusions is None):
+        #     # for infusion in infusions:
+        #     #     print(self.char.idx == infusion.char.idx)
+        #     #     print(self.skill_type in infusion.skill_types_from)
+        #     infusion_check = lambda infusion: self.char.idx == infusion.char.idx and self.skill_type in infusion.skill_types_from
+        #     infusion_map = torch.tensor(list(map(infusion_check, infusions)))
+        #     map_sum = torch.sum(infusion_map.int())
+        #     if map_sum > 1:
+        #         raise MultipleInfusions('multiple valid infusions are found')
+        #     elif map_sum == 0:
+        #         pass
+        #     else:
+        #         infusion = infusions[infusion_map.int().argmax().item()]
+        #         target_skill = infusion.skills_infused[self.skill_type]
+        #         target_skill.update(strike=self.strike)
+        #         return target_skill.damage(team, enemy, buffs, reaction, on_field_idx=on_field_idx)
 
         for i in range(self.strike):
             dmg += self.skills[i % self.strike_length].damage(team, enemy, buffs, reaction, infusions, on_field_idx=on_field_idx)

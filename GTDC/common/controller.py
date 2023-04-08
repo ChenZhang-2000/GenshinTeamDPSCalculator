@@ -1,4 +1,5 @@
 import re
+import copy
 
 import yaml
 import openpyxl
@@ -263,7 +264,7 @@ def write_df(df, objects, start_time, end_time, mode):
         raise ValueError(f"Invalid mode {mode}")
 
 
-def read_skill_excel(team, file_direc=r".\data\skills.xlsx"):
+def read_skill_excel(team, ws, ws_idx=0):
     """
     This function will read xlsx file of skills.
     It'll create skill, buff, and infusion DataFrame object, and decode the value of skill/buff cell by
@@ -279,8 +280,7 @@ def read_skill_excel(team, file_direc=r".\data\skills.xlsx"):
     buff_df = pd.DataFrame(columns=['buff', 'start_time', 'end_time'])
     infusion_df = pd.DataFrame(columns=['infusion', 'start_time', 'end_time'])
 
-    ws = openpyxl.load_workbook(file_direc, data_only=True).worksheets[0]
-    ws_idx = 0
+    ws = ws[ws_idx]
 
     time_row, on_field_row, skill_row, buff_row, reaction_row = None, None, None, None, None
     row_char_map = {}
@@ -382,21 +382,37 @@ def get_enemy():
             print()
 
 
-def get_skills(enemies, team):
+def get_skills(enemies, chars_data):
+
     while True:
         directory = input("请输入技能信息表格位置：")
         if directory == '':
             directory = r"data\skills.xlsx"
         try:
-            skill_df, buff_df, infusion_df = read_skill_excel(team, directory)
-            models = []
+            enemies_x_models = []
+            workbook = openpyxl.load_workbook(directory, data_only=True)
+            ws_names = workbook.sheetnames
+            ws = workbook.worksheets
+            enemy_names = []
             for enemy in enemies:
-               models.append(Model(team=team, enemy=enemies[enemy],
-                                   skills=skill_df,
-                                   buffs=buff_df,
-                                   infusions=infusion_df))
-            models[0].validation()
-            return models
+                enemy_names.append(enemy)
+                models = []
+
+                for ws_idx in range(len(ws)):
+                    team = team_generation(copy.deepcopy(chars_data))
+                    skill_df, buff_df, infusion_df = read_skill_excel(team, ws, ws_idx)
+                    models.append(Model(team=team, enemy=enemies[enemy],
+                                        skills=skill_df.copy(),
+                                        buffs=buff_df.copy(),
+                                        infusions=infusion_df.copy()))
+
+                for model in models:
+                    model.validation()
+
+                enemies_x_models.append(models)
+
+            return enemies_x_models, ws_names, enemy_names
+
         except InvalidIndex as err:
             invalid_skill_index(err)
             print("请重新输入")
@@ -416,12 +432,15 @@ def get_skills(enemies, team):
 def terminal_ui():
     chars_data = get_char()
     enemies = get_enemy()
+    # print(chars_data)
 
-    team = team_generation(chars_data)
-    models = get_skills(enemies, team)
+    enemies_x_models, ws_names, enemy_names = get_skills(enemies, chars_data)
 
     damage_result = []
-    for model in models:
-        damage_result.append(model.run())
+    for models in enemies_x_models:
+        damages = []
+        for model in models:
+            damages.append(model.run())
+        damage_result.append(damages)
 
-    return damage_result, models
+    return damage_result, enemies_x_models, ws_names, enemy_names

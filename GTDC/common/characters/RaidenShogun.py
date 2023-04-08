@@ -42,9 +42,6 @@ class RaidenInfusion(Infusion):
                                 'PL_high': Skills(char, scaling[7][1]+bonus, 'PL_high', 'electro')}, self_infuse=True)
         self.char.skill_q.scale += scaling[-2][0] * stacks
 
-    def update(self, *args, **kwargs):
-        pass
-
     def check(self, skill, team=None):
         return (self.char.idx == skill.char.idx) and (skill.skill_type in self.skill_types_from)
 
@@ -115,8 +112,8 @@ class BuffP(ProportionalBuff):
         # print(array)
         # assert array.shape == (2, Stats.length)
         mask = torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., -100., 0., 0.,
-                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]]).double()
-        array = torch.sparse_coo_tensor([[19], [13]], [0.4], (Stats.length, Stats.length)).double()
+                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]])
+        array = torch.sparse_coo_tensor([[19], [13]], [0.4], (Stats.length, Stats.length))
         super().__init__(char=char)
         self.func = lambda x:  (array @ (x+mask).T).T
 
@@ -146,8 +143,8 @@ class RaidenShogun(Character):
                                                       0.,
                                                       0.]]))
 
-        self.skill_e = Skills(self, self.scaling['e'][self.skill_level[1]-1][1][0], 'e', 'electro')
-        self.skill_e.first_skill = Skills(self, self.scaling['e'][self.skill_level[1]-1][0][0], 'e', 'electro')
+        self.skill_e = Skills(self, self.scaling['e'][self.skill_level[1]-1][1], 'e', 'electro')
+        self.skill_e.first_skill = Skills(self, self.scaling['e'][self.skill_level[1]-1][0], 'e', 'electro')
         self.skill_e.first_particular = True
 
         self.infusion = RaidenInfusion(self, self.scaling['other'][self.skill_level[2]-1], 60)
