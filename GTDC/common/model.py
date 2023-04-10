@@ -6,7 +6,7 @@ import torch
 from torch.nn.functional import one_hot
 
 from GTDC.common.characters.base_char import Character
-from GTDC.common.stats import BasicBuff, ProportionalBuff, Stats, Debuff
+from GTDC.common.stats import BasicBuff, ProportionalBuff, Stats, Debuff, DamageStats
 from GTDC.common.exception import InvalidSkillTime
 
 
@@ -39,6 +39,7 @@ class Team:
         self.stats = Stats(torch.stack(list(map(lambda c: c.stats.data.flatten(), self.chars))))
         self._static_stats = Stats(self.stats.data + 0)
         self._dynamic_stats = Stats(self.stats.data + 0)
+        self.dendro_cores = []
 
     def __getitem__(self, item):
         return self.chars[item]
@@ -102,6 +103,8 @@ class Model:
         self.skills_data = skills
         self.buffs_data = buffs
         self.infusions_data = infusions
+
+        self.damage_stats = DamageStats()
 
         self.times = []
         for df in (skills, buffs, infusions):
@@ -199,6 +202,7 @@ class Model:
             # getting the selected time matrix and data
             valid_skills_mat = self.skills_mat[valid_skills_mask]
             valid_skills_data = self.skills_data.iloc[valid_skills_mask]
+            # print(valid_skills_data)
 
             t_last = t
 
@@ -219,6 +223,8 @@ class Model:
             # valid_infusions_mask = (self.infusions_mat@valid_skills_mat.T) > 0
             valid_infusions_mask = self.infusions_mat[:, t.astype(bool)]
             # print(valid_infusions_mask)
+
+            dendro_cores = [dc for dc in self.team.dendro_cores if (dc.start_time + dc.duration) >= start_time]
 
             # iterate over the skills start at this time
             for idx, (_, valid_skill) in enumerate(valid_skills_data.iterrows()):
@@ -241,13 +247,16 @@ class Model:
 
                 # calculate damages
                 # print(infusion)
-                # print(buffs)
-                dmg = skill.damage(team=self.team, enemy=self.enemy, buffs=buffs, reaction=valid_skill['reaction'],
-                                   infusions=infusion, **(valid_skill['kwarg']),
+                # print(skill)
+                dmg = skill.damage(team=self.team, enemy=self.enemy, buffs=buffs, reactions=valid_skill['reaction'] + dendro_cores,
+                                   infusions=infusion, **(valid_skill['kwarg']), ds=self.damage_stats, t=start_time,
                                    on_field_idx=self.team.on_field[self.inv_time[start_time]])
+
+                dendro_cores = []
+
                 end_time = valid_skill['end_time']
                 # print(self.inv_time[end_time])
                 # print(dmg)
-                total_dmg[(self.inv_time[end_time]):] += dmg[0]
+                # total_dmg[(self.inv_time[end_time]):] += dmg[0]
 
-        return total_dmg
+        return self.damage_stats

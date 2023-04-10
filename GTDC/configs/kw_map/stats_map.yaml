@@ -39,8 +39,8 @@ electro_resistance: ["雷元素抗性", "雷抗", "Electro Resistance", "Electro
 anemo_dmg_bonus: ["风元素伤害加成", "风伤", "Anemo Damage Bonus", "Anemo DMG Bonus", "Anemo DB"]
 anemo_resistance: ["风元素抗性", "风抗", "Anemo Resistance", "Anemo RI"]
 
-cyro_dmg_bonus: ["冰元素伤害加成", "冰伤", "Cyro Damage Bonus", "Cyro DMG Bonus", "Cyro DB"]
-cyro_resistance: ["冰元素抗性", "冰抗", "Cyro Resistance", "Cyro RI"]
+cryo_dmg_bonus: ["冰元素伤害加成", "冰伤", "Cryo Damage Bonus", "Cryo DMG Bonus", "Cryo DB"]
+cryo_resistance: ["冰元素抗性", "冰抗", "Cryo Resistance", "Cryo RI"]
 
 geo_dmg_bonus: ["岩元素伤害加成", "岩伤", "Geo Damage Bonus", "Geo DMG Bonus", "Geo DB"]
 geo_resistance: ["岩元素抗性", "岩抗", "Geo Resistance", "Geo RI"]

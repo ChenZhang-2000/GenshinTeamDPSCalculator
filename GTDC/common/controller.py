@@ -9,7 +9,7 @@ import torch
 import pandas as pd
 
 from GTDC.common import config
-from GTDC.common.reaction.reaction import REACTION_FACTORY
+from GTDC.common.reactions.reaction import REACTION_FACTORY
 from GTDC.common.exception import InvalidCell, InvalidTitle, InvalidStats, InvalidCharNameInSkillFile, InvalidIndex
 from GTDC.common.exception import MissingTime, MissingSkills, MissingBuffs, MissingOnField
 from GTDC.common.exception import invalid_char_file, varify_char_file, invalid_enemy_file, varify_enemy_file
@@ -169,6 +169,7 @@ def value_parsing(char, values, mode):
     :return:
     """
     objects = []
+    reaction = []
     if mode in ['skills', 'skill']:
         d = char.skills
     elif mode in ['buffs', 'buff']:
@@ -176,14 +177,24 @@ def value_parsing(char, values, mode):
     else:
         raise ValueError(f"Invalid mode {mode}")
     # print(value)
-    pattern = r"([a-zA-z0-9\u4e00-\u9fff]{1,})(?:{{0,1})([a-zA-z0-9\u4e00-\u9fff]{0,})(?:}{0,1})(?:\({0,1})([a-zA-z0-9\u4e00-\u9fff]{0,})(?:\){0,1})"
+    pattern = r"([a-zA-z0-9\u4e00-\u9fff]{1,})(?:{{0,1})([a-zA-z0-9\u4e00-\u9fff]{0,})(?:}{0,1})(?:\({0,1})([a-zA-z0-9\u4e00-\u9fff\,\{\}]{0,})(?:\){0,1})"
+
+    # print(values)
+    # print(values.split())
 
     for value in values.split():
+        value = value.replace("（", "(").replace("）", ")").replace("，", ",")
         groups = re.match(pattern, value).groups()
+        name, params, reaction_aliases = groups
         # print(groups)
-        name, params, reaction_alias = groups
-        reaction_name = config.reaction_map[reaction_alias]
-        reaction = None if reaction_name is None else REACTION_FACTORY[reaction_name]
+        # print(REACTION_FACTORY)
+
+        reaction_aliases = reaction_aliases.split(',')
+        # print(reaction_aliases)
+        reaction_names = [config.reaction_map[alias] for alias in reaction_aliases]
+        # print(reaction_names)
+        reactions = [] if reaction_names[0] is None else [REACTION_FACTORY[reaction_name]() for reaction_name in reaction_names]
+
         params = [i.strip() for i in params.split(',')]
         if name in config.skill_map.keys():
             if config.skill_map[name] == 'weapon':
@@ -201,12 +212,12 @@ def value_parsing(char, values, mode):
                 raise ValueError(f"Invalid mode {mode}")
 
             if len(params) == 1 and params[0] == '':
-                objects.append(target[0])
+                objects.append((target[0], reactions))
             else:
                 arg, kwarg = expand_params(params[1:])
                 obj = target[int(params[0])]
                 obj.update(*arg, **kwarg)
-                objects.append(obj)
+                objects.append((obj, reactions))
 
         else:
             arg, kwarg = expand_params(params)
@@ -214,7 +225,7 @@ def value_parsing(char, values, mode):
             #     print(d[name])
             obj = d[name]
             obj.update(*arg, **kwarg)
-            objects.append(obj)
+            objects.append((obj, reactions))
     return objects
 
 
@@ -252,10 +263,10 @@ def decode_skill_block(block, times, row_char_map, data_frame, mode):
 
 def write_df(df, objects, start_time, end_time, mode):
     if mode == "skill" or mode == "skills":
-        for obj in objects:
-            df.loc[len(df.index)] = [obj, start_time, end_time, None, {}]
+        for obj, reactions in objects:
+            df.loc[len(df.index)] = [obj, start_time, end_time, reactions, {}]
     elif mode == "buffs" or mode == "buff":
-        for obj in objects:
+        for obj, _ in objects:
             if isinstance(obj, Infusion):
                 df[1].loc[len(df[1].index)] = [obj, start_time, end_time]
             else:

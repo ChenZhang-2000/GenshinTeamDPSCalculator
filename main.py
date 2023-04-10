@@ -17,6 +17,7 @@ fontP = font_manager.FontProperties()
 fontP.set_family('SimHei')
 fontP.set_size(14)
 
+
 def main():
 
     return
@@ -27,10 +28,10 @@ if __name__ == "__main__":
     damage_result, models_x_enemies, ws_names, enemy_names = terminal_ui()
     for i, enemy_name in enumerate(enemy_names):
         for j in range(len(models_x_enemies[0])):
-            total_dmg = damage_result[i][j]
-            model = models_x_enemies[i][j]
+            damage_stats = damage_result[i][j]
+            total_dmg = damage_stats.output("time")
             # print(total_dmg[-1])
-            plt.plot(model.times, total_dmg)
+            plt.plot(total_dmg[0], total_dmg[1])
             plt.xlabel('Time')
             plt.ylabel('DMG')
         plt.title(f"Enemy: {enemy_name}")

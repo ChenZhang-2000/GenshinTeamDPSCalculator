@@ -3,6 +3,8 @@ import copy
 import numpy as np
 import torch
 
+from .reactions import *
+
 
 STATS_LENGTH = 33
 ESTATS_LENGTH = 12
@@ -31,15 +33,91 @@ STATS_IDX_MAP_EN = ["Base ATK", "ATK", "Percentage ATK",
                     "Hydro Damage Bonus", "Hydro Resistence",
                     "Electro Damage Bonus", "Electro Resistence",
                     "Anemo Damage Bonus", "Anemo Resistence",
-                    "Cyro Damage Bonus", "Cyro Resistence",
+                    "Cryo Damage Bonus", "Cryo Resistence",
                     "Geo Damage Bonus", "Geo Resistence",
                     "Dendro Damage Bonus", "Dendro Resistence",
                     "Physical Damage Bonus", "Physical Resistence",
                     "Other Dmg Bonus", "Additional Dmg Bonus"]
 
+ELEMENT_IDX_MAP = {
+    "pyro": 0,
+    "hydro": 1,
+    "electro": 2,
+    "anemo": 3,
+    "cryo": 4,
+    "geo": 5,
+    "dendro": 6,
+    "physical": 7
+}
+ELEMENT_MAP = ["pyro", "hydro", "electro", "anemo", "cryo", "geo", "dendro", "physical"]
+
 
 class MultipleInfusions(Exception):
     pass
+
+
+class DamageStats:
+    def __init__(self):
+        self.damages = None
+
+    def init_damage(self):
+        self.damages = None
+
+    def add(self, time, dmg: torch.Tensor, char_idx, element):
+        damage = torch.Tensor([[time, dmg, char_idx, ELEMENT_IDX_MAP[element]]])
+        if self.damages is None:
+            self.damages = damage
+        else:
+            # print(self.damages)
+            # print(damage)
+            self.damages = torch.cat([self.damages, damage])
+
+    def sort(self, by):
+        if by == "time" or by == "t":
+            self.damages = self.damages[self.damages[:, 0].sort()[1]]
+        elif by == "character" or by == "char":
+            self.damages = self.damages[self.damages[:, 2].sort()[1]]
+        elif by == "element":
+            self.damages = self.damages[self.damages[:, 3].sort()[1]]
+        else:
+            raise
+
+    def output(self, mode):
+        if mode == "time":
+            # self.print_stats()
+            self.sort("time")
+
+            damages = [[0., 0.]]
+            dmg = torch.Tensor([0.])
+            t_last = 0.
+            for i in range(len(self.damages)):
+                t = self.damages[i, 0].item()
+                if t != t_last:
+                    damages.append([t, dmg.item()])
+                dmg += self.damages[i, 1]
+                t_last = t
+
+            damages.append([t_last + 1, dmg])
+            damages = torch.Tensor(damages).T
+
+        elif mode == "character":
+            damages = 0.
+
+        elif mode == "element":
+            damages = 0.
+
+        elif mode == "sum":
+            damages = self.damages[:, 1]
+
+        else:
+            raise
+
+        return damages
+
+    def print_stats(self, by="time"):
+        self.sort(by)
+        for data in self.damages:
+            print(f"Time: {data[0].item()}\n  Damage: {data[1].item()}\n  Character: {data[2].item()}\n  Element: {ELEMENT_MAP[int(data[3].item())]}")
 
 
 class Stats:
@@ -276,14 +354,6 @@ class Infusion:
         return True
 
 
-class Reaction:
-    pass
-
-
-class AmplifyingReaction(Reaction):
-    pass
-
-
 class Monster:
     length = ESTATS_LENGTH
     """
@@ -415,7 +485,7 @@ class Skills:
         for debuff in debuffs:
             enemy.change_stats(debuff)
 
-    def damage(self, team, enemy, buffs: ([], [], []), reaction, infusions=None, on_field_idx=0):
+    def damage(self, team, enemy, buffs: ([], [], []), reactions, ds, t, on_field_idx, infusions=None):
         """
         team: team object
         enemy: enemy object
@@ -430,6 +500,9 @@ class Skills:
 
         """
         reaction_factor = 1.
+        trans_dmg = 0.
+        dc_dmg = 0.
+
         if not infusions is None:
             infusion_check = lambda infusion: infusion.check(self, team)
             infusion_map = np.array(list(map(infusion_check, infusions)))
@@ -458,31 +531,61 @@ class Skills:
                     raise MultipleInfusions('multiple valid unoverridable infusions are found')
 
                 if infusion.self_infuse:
-                    return infusion.skills_infused[self.skill_type].damage(team, enemy, buffs, reaction)
+                    return infusion.skills_infused[self.skill_type].damage(team, enemy, buffs, reactions,
+                                                                           ds, t, on_field_idx)
                 else:
                     infused_skill = copy.copy(self)
                     infused_skill.char = self.char
                     infused_skill.element_type = infusion.infuse_element
-                    return infused_skill.damage(team, enemy, buffs, reaction)
+                    return infused_skill.damage(team, enemy, buffs, reactions, ds, t, on_field_idx)
                     # infusion.infuse_element
-        # print(self.char.idx)
-        # print(stats)
-        # print(buffs)
-        first_dmg = 0
+
+        # first_dmg = 0
         if self.first_particular and self._num_calculated == 0:
             self._num_calculated += 1
-            first_dmg = self.first_skill.damage(team, enemy, buffs, reaction, infusions)
+            first_dmg = self.first_skill.damage(team, enemy, buffs, reactions, ds, t, on_field_idx)
+            # print(t, first_dmg)
+            # ds.add(t, first_dmg, self.char.idx, self.element_type)
 
         self.buff_skill(team, buffs[0], buffs[1] + team.permanent_prop_buffs[self.char.idx], on_field_idx)
         self.debuff_enemy(enemy, buffs[2])
         c_idx = self.char.idx
         stats = team.get_stats(c_idx)
-        dmg = self.calculate(stats, enemy)
+
+        # print(reactions)
+        for reaction in reactions:
+            if isinstance(reaction, Amplifying):
+                reaction_factor = reaction.react(team, self, stats, enemy)
+
+            elif isinstance(reaction, Transformative):
+                trans_dmg += reaction.react(team, self, stats, enemy)
+                # print(t, trans_dmg, "Transformative")
+                ds.add(t, trans_dmg, self.char.idx, reaction.element_type)
+
+            elif isinstance(reaction, Catalyze):
+                stats[0:-1] += reaction.react(team, self, stats, enemy)
+
+            elif isinstance(reaction, Bloom):
+                reaction.react(team, self, stats, enemy, t=t)
+
+            elif isinstance(reaction, DendroCore):
+                dmg = reaction.react(team, self, team.get_stats(reaction.char.idx), enemy)
+                ds.add(reaction.start_time + reaction.duration, dmg, self.char.idx, "dendro")
+
+            elif isinstance(reaction, Blooming):
+                dc_dmg += reaction.react(team, self, stats, enemy)
+
+        ds.add(t, dc_dmg, self.char.idx, "dendro")
+
+        dmg = self.calculate(stats, enemy) * reaction_factor
         team.init_stats()
         enemy.init_stats()
 
         self._num_calculated += 1
-        return first_dmg + dmg * reaction_factor
+
+        ds.add(t, dmg, self.char.idx, self.element_type)
+
+        return dmg
 
     def calculate(self, stats, enemy):
         """
@@ -520,7 +623,7 @@ class PolySkills:
         self.skill_type = skill_type
         self.element_type = element_type
 
-    def damage(self, team, enemy, buffs: ([], [], []), reaction, infusions=None, on_field_idx=0):
+    def damage(self, team, enemy, buffs: ([], [], []), reactions, ds, t, on_field_idx, infusions=None):
         dmg = 0
         if not infusions is None:
             infusion_check = lambda infusion: infusion.check(self, team)
@@ -550,31 +653,15 @@ class PolySkills:
                     raise MultipleInfusions('multiple valid unoverridable infusions are found')
 
                 if infusion.self_infuse:
-                    return infusion.skills_infused[self.skill_type].damage(team, enemy, buffs, reaction)
+                    return infusion.skills_infused[self.skill_type].damage(team, enemy, buffs, reactions, ds, t, on_field_idx)
                 else:
                     infused_skill = copy.copy(self)
                     infused_skill.char = self.char
                     infused_skill.element_type = infusion.infuse_element
-                    return infused_skill.damage(team, enemy, buffs, reaction)
-        # if not (infusions is None):
-        #     # for infusion in infusions:
-        #     #     print(self.char.idx == infusion.char.idx)
-        #     #     print(self.skill_type in infusion.skill_types_from)
-        #     infusion_check = lambda infusion: self.char.idx == infusion.char.idx and self.skill_type in infusion.skill_types_from
-        #     infusion_map = torch.tensor(list(map(infusion_check, infusions)))
-        #     map_sum = torch.sum(infusion_map.int())
-        #     if map_sum > 1:
-        #         raise MultipleInfusions('multiple valid infusions are found')
-        #     elif map_sum == 0:
-        #         pass
-        #     else:
-        #         infusion = infusions[infusion_map.int().argmax().item()]
-        #         target_skill = infusion.skills_infused[self.skill_type]
-        #         target_skill.update(strike=self.strike)
-        #         return target_skill.damage(team, enemy, buffs, reaction, on_field_idx=on_field_idx)
+                    return infused_skill.damage(team, enemy, buffs, reactions, ds, t, on_field_idx)
 
         for i in range(self.strike):
-            dmg += self.skills[i % self.strike_length].damage(team, enemy, buffs, reaction, infusions, on_field_idx=on_field_idx)
+            dmg += self.skills[i % self.strike_length].damage(team, enemy, buffs, reactions, ds, t, on_field_idx)
         return dmg
 
     def update(self, strike, *args, **kwargs):
@@ -583,10 +670,4 @@ class PolySkills:
             pass
         else:
             self.strike = int(strike)
-
-
-class TransformativeReaction(Reaction, Skills):
-    pass
-
-
 

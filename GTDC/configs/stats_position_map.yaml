@@ -29,8 +29,8 @@ electro_resistance: 20
 anemo_dmg_bonus: 21
 anemo_resistance: 22
 
-cyro_dmg_bonus: 23
-cyro_resistance: 24
+cryo_dmg_bonus: 23
+cryo_resistance: 24
 
 geo_dmg_bonus: 25
 geo_resistance: 26
