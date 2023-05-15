@@ -5,7 +5,7 @@ from GTDC.common.stats import Stats, Buff, BasicBuff, ProportionalBuff
 
 
 class ECtoDB(ProportionalBuff):
-    def __init__(self, char: int, array: torch.tensor = torch.zeros((2, Stats.length)), skill_type='all'):
+    def __init__(self, char: int, ):
         """
         char: index of the characters in the team
         array: numpy array of shape 2 x stats_length with first row being the proportions, the second row being the one hot
@@ -17,8 +17,20 @@ class ECtoDB(ProportionalBuff):
         """
         # print(array)
         # assert array.shape == (2, Stats.length)
-        super().__init__(char=char, array=array, skill_type=skill_type)
-        self.func = lambda x: (array @ x.T).T
+        array = torch.sparse_coo_tensor([[31], [13]], [0.25], (Stats.length, Stats.length))
+        super().__init__(char=char, array=array, skill_type='q')
+        # self.func = lambda x: (array @ x.T).T
+
+        max_mask = torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0, 0, 0,
+                                  0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 75., 0.]])
+
+        def func(x):
+            y = (array @ (x).T).T
+            # print(y.shape)
+            y = y * (y <= max_mask) + max_mask * (y > max_mask)
+            return y
+
+        self.func = func
 
 
 @register_artifact
@@ -31,7 +43,5 @@ class SeveredFate(Artifact):
                                                      0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]])),
                                 'permanent'))
 
-        self.four_effect.append((ECtoDB(char,
-                                        torch.sparse_coo_tensor([[31], [13]], [0.25], (Stats.length, Stats.length)),
-                                        skill_type={'q'}),
+        self.four_effect.append((ECtoDB(char),
                                  'permanent'))

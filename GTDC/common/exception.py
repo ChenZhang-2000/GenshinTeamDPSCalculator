@@ -1,7 +1,7 @@
-from .characters import CHAR_FACTORY
-from .weapon import WEAPON_FACTORY
-from .artifact import ARTIFACT_FACTORY
-from .enemy import ENEMY_FACTORY
+# from .characters import CHAR_FACTORY
+# from .weapon import WEAPON_FACTORY
+# from .artifact import ARTIFACT_FACTORY
+# from .enemy import ENEMY_FACTORY
 from .config import char_map, weapon_map, artifact_map, enemy_map
 
 

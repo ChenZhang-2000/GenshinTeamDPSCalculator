@@ -16,6 +16,7 @@ def register_char(cls):
 
     def register(cls):
         CHAR_FACTORY[cls_name] = cls
+        return cls
 
     return register(cls)
 

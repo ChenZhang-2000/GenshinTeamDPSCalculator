@@ -20,6 +20,7 @@ def register_reaction(cls):
 
     def register(cls):
         REACTION_FACTORY[cls_name] = cls
+        return cls
 
     return register(cls)
 

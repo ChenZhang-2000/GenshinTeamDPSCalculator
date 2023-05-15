@@ -22,7 +22,7 @@ class Team:
         """
         self.chars = chars
         self.on_field = 0
-        self.permanent_prop_buffs = tuple([] for i in chars)
+        self.permanent_prop_buffs = tuple([] for _ in chars)
         for i, char in enumerate(chars):
             char.idx = i
             char.weapon.init_char(char)
@@ -56,6 +56,7 @@ class Team:
 
     def add_proportional_buff(self, buff, c_idx):
         buff.load_buff(self._static_stats)
+        # print(buff)
         self._dynamic_stats[c_idx] += buff.data
 
     def init_stats(self):
@@ -239,15 +240,19 @@ class Model:
 
                 # print(self.buffs_data['buff'])
                 # print(self.buffs_data['buff'][valid_buff_mask * basic_buffs_mask])
+                # print(proportional_buffs_mask)
+                # print(self.buffs_data['buff'][np.array(proportional_buffs_mask).astype(bool)])
+                skill = valid_skill['skill']
                 buffs = (list(self.buffs_data['buff'][(valid_buff_mask*basic_buffs_mask).astype(bool)]),
                          list(self.buffs_data['buff'][(valid_buff_mask*proportional_buffs_mask).astype(bool)]),
+                         # + self.team.permanent_prop_buffs[skill.char.idx],
                          list(self.buffs_data['buff'][(valid_buff_mask*de_buffs_mask).astype(bool)]))
                 infusion = self.infusions_data['infusion'][valid_infusion_mask.astype(bool)]
-                skill = valid_skill['skill']
 
                 # calculate damages
                 # print(infusion)
                 # print(skill)
+                # print(buffs)
                 dmg = skill.damage(team=self.team, enemy=self.enemy, buffs=buffs, reactions=valid_skill['reaction'] + dendro_cores,
                                    infusions=infusion, **(valid_skill['kwarg']), ds=self.damage_stats, t=start_time,
                                    on_field_idx=self.team.on_field[self.inv_time[start_time]])

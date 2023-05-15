@@ -12,6 +12,7 @@ def register_artifact(cls):
 
     def register(cls):
         ARTIFACT_FACTORY[cls_name] = cls
+        return cls
 
     return register(cls)
 

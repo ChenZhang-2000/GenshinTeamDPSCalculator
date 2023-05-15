@@ -68,8 +68,6 @@ class DamageStats:
         if self.damages is None:
             self.damages = damage
         else:
-            # print(self.damages)
-            # print(damage)
             self.damages = torch.cat([self.damages, damage])
 
     def sort(self, by):
@@ -175,7 +173,6 @@ class Stats:
         self.data = array
 
     def __getitem__(self, idx):
-        # print(2)
         if isinstance(idx, str):
             if idx == 'pyro':
                 return self.data[:, 15]
@@ -203,7 +200,6 @@ class Stats:
                 return target
 
     def __setitem__(self, key, value):
-        # print(1)
         if isinstance(value, Stats):
             self.data[key] = value.data
         elif isinstance(value, torch.Tensor):
@@ -264,7 +260,6 @@ class Buff(Stats):
         element_type: whether the buff affect on certain elements, accepted values:
             all, pyro,  hydro, electro, anemo, cryo, geo, physical
         """
-        # print(array)
         self.char = char
         super().__init__(array)
         self.skill_type = skill_type
@@ -274,7 +269,7 @@ class Buff(Stats):
         return f"Character: {type(self.char).__name__}\nBuff: {type(self).__name__}\n" + f"Value:\n  {self.data.numpy()}\n"
 
     def valid(self, skill, team, on_field):
-        return self.skill_type == 'all' or self.skill_type == skill.skill_type
+        return True
 
     def update(self, *args, **kwargs):
         pass
@@ -294,7 +289,6 @@ class BasicBuff(Buff):
         element_type: whether the buff affect on certain elements, accepted values:
             all, pyro,  hydro, electro, anemo, cryo, geo, dendro, physical
         """
-        # print(array)
         super().__init__(char, array, skill_type=skill_type, element_type=element_type)
 
 
@@ -313,7 +307,6 @@ class ProportionalBuff(Buff):
         element_type: whether the buff affect on certain elements, accepted values:
             all, pyro,  hydro, electro, anemo, cryo, geo, physical
         """
-        # print(array)
         self.func = lambda x: (array @ x.T).T
         super().__init__(char=char, skill_type=skill_type, element_type=element_type)
 
@@ -330,10 +323,8 @@ class ProportionalBuff(Buff):
         # mask = torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., -100., 0., 0.,
         #                       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]])
         # a = stats.data + mask
-        # print(a)
 
         self.data = self.func(stats[self.char.idx])
-        # print(self.data.shape)
 
 
 class Infusion:
@@ -372,7 +363,6 @@ class Monster:
     """
     def __init__(self, array: torch.tensor = torch.zeros(1, ESTATS_LENGTH)):
         assert array.shape[1] == ESTATS_LENGTH
-        # print(array)
         self.data = array
 
     def __getitem__(self, idx):
@@ -399,13 +389,9 @@ class Monster:
             return self.data.__getitem__(idx)
 
     def __add__(self, other):
-        # print(1)
         return Monster(self.data + other)
 
     def __radd__(self, other):
-        # print('-----------------------------------------------')
-        # print(self.data)
-        # print(other)
         return Monster(self.data + other)
 
 
@@ -414,13 +400,9 @@ class Debuff(Monster):
         super().__init__(array)
 
     def __add__(self, other):
-        # print(1)
         return Debuff(self.data + other)
 
     def __radd__(self, other):
-        # print('-----------------------------------------------')
-        # print(self.data)
-        # print(other)
         return Debuff(self.data + other)
 
 
@@ -453,7 +435,6 @@ class Skills:
         elif self.element_type in buff.element_type:
             correct_element = True
 
-        # print(correct_validation, correct_skill, correct_element)
         return correct_validation and correct_skill and correct_element
 
     def buff_skill(self, team, basic_buffs, proportion_buffs, on_field_idx):
@@ -470,16 +451,12 @@ class Skills:
         #         proportion_buffs.append(buff)
 
         for buff in basic_buffs:
-            # print(basic_buffs)
-            # print(buff)
             if self.buff_valid(buff, team, self.char.idx == on_field_idx):
                 team.add_basic_buff(buff, self.char.idx)
 
         for buff in proportion_buffs:
-            # print(buff)
             if self.buff_valid(buff, team, self.char.idx == on_field_idx):
                 team.add_proportional_buff(buff, self.char.idx)
-                # print(buff)
 
     def debuff_enemy(self, enemy, debuffs):
         for debuff in debuffs:
@@ -540,26 +517,21 @@ class Skills:
                     return infused_skill.damage(team, enemy, buffs, reactions, ds, t, on_field_idx)
                     # infusion.infuse_element
 
-        # first_dmg = 0
         if self.first_particular and self._num_calculated == 0:
             self._num_calculated += 1
             first_dmg = self.first_skill.damage(team, enemy, buffs, reactions, ds, t, on_field_idx)
-            # print(t, first_dmg)
-            # ds.add(t, first_dmg, self.char.idx, self.element_type)
 
         self.buff_skill(team, buffs[0], buffs[1] + team.permanent_prop_buffs[self.char.idx], on_field_idx)
         self.debuff_enemy(enemy, buffs[2])
         c_idx = self.char.idx
         stats = team.get_stats(c_idx)
 
-        # print(reactions)
         for reaction in reactions:
             if isinstance(reaction, Amplifying):
                 reaction_factor = reaction.react(team, self, stats, enemy)
 
             elif isinstance(reaction, Transformative):
                 trans_dmg += reaction.react(team, self, stats, enemy)
-                # print(t, trans_dmg, "Transformative")
                 ds.add(t, trans_dmg, self.char.idx, reaction.element_type)
 
             elif isinstance(reaction, Catalyze):
@@ -578,6 +550,7 @@ class Skills:
         ds.add(t, dc_dmg, self.char.idx, "dendro")
 
         dmg = self.calculate(stats, enemy) * reaction_factor
+
         team.init_stats()
         enemy.init_stats()
 
@@ -665,7 +638,6 @@ class PolySkills:
         return dmg
 
     def update(self, strike, *args, **kwargs):
-        # print(strike)
         if strike == '':
             pass
         else:

@@ -14,6 +14,7 @@ def register_enemy(cls):
 
     def register(cls):
         ENEMY_FACTORY[cls_name] = cls
+        return cls
 
     return register(cls)
 

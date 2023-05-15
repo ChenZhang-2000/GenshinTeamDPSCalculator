@@ -14,6 +14,7 @@ def register_weapon(cls):
 
     def register(cls):
         WEAPON_FACTORY[cls_name] = cls
+        return cls
 
     return register(cls)
 

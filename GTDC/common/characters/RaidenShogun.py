@@ -25,7 +25,7 @@ def calculate(self, stats, enemy):
         resistance = 1 - resistance / 100
     defence = enemy[:, 1] * (1 - enemy[:, 11] / 100) * 0.4
     def_factor = (1 + self.char.level/100) * 500 / (defence * (1 + enemy.level/100) + (1 + self.char.level/100) * 500)
-
+    # print(stats[0,13])
     # print(f"Scale: {scale}\nAttack: {atk.item()}\nAdditional: {additional.item()}\n" +
     #       f"Critical: {critical.item()}\nDamage Bonus: {dmg_bonus.item()}\n" +
     #       f"Resistance: {resistance[0]}\nDefence: {def_factor.item()}\n")
@@ -35,11 +35,12 @@ def calculate(self, stats, enemy):
 class RaidenInfusion(Infusion):
     def __init__(self, char, scaling, stacks):
         bonus = scaling[-1][0] * stacks
-        super().__init__(char, {'a': PolySkills(char, [sum(i)+bonus*len(i) for i in scaling[:5]], 'a', 'electro'),
-                                'A': Skills(char, sum(scaling[5])+bonus*2, 'A', 'electro'),
-                                'pl': Skills(char, sum(scaling[6])+bonus, 'pl', 'electro'),
-                                'PL_low': Skills(char, scaling[7][0]+bonus, 'PL_low', 'electro'),
-                                'PL_high': Skills(char, scaling[7][1]+bonus, 'PL_high', 'electro')}, self_infuse=True)
+        # print(bonus)
+        super().__init__(char, {'a': PolySkills(char, [sum(i)+bonus*len(i) for i in scaling[:5]], 'q', 'electro'),
+                                'A': Skills(char, sum(scaling[5])+bonus*2, 'q', 'electro'),
+                                'pl': Skills(char, sum(scaling[6])+bonus, 'q', 'electro'),
+                                'PL_low': Skills(char, scaling[7][0]+bonus, 'q', 'electro'),
+                                'PL_high': Skills(char, scaling[7][1]+bonus, 'q', 'electro')}, self_infuse=True)
         self.char.skill_q.scale += scaling[-2][0] * stacks
 
     def check(self, skill, team=None):
@@ -127,8 +128,7 @@ class RaidenShogun(Character):
 
         self.buff_e = Buff_e(self)
         self.buff_c4 = BasicBuff(char=self,
-                                 element_type='q',
-                                 array=torch.tensor([[0., 0., 0.,
+                                 array=torch.tensor([[0., 0., 10.,
                                                       0., 0., 0.,
                                                       0., 0., 0.,
                                                       0., 0., 0., 0., 0., 0.,
@@ -175,6 +175,10 @@ class RaidenShogun(Character):
     def constellation_effect(self, *args, **kwargs):
         if self.constellation >= 2:
             for skill in [self.skill_q, * self.infusion.skills_infused.values()]:
+                if isinstance(skill, PolySkills):
+                    for s in skill.skills:
+                        s.calculate = types.MethodType(calculate, s)
+                    continue
                 skill.calculate = types.MethodType(calculate, skill)
         if self.constellation >= 4:
             self.buffs['c4'] = self.buff_c4
