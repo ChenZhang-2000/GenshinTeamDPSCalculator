@@ -77,9 +77,9 @@ class Ayaka(Character):
                                                       298.,
                                                       0.]]))
 
-        self.buff_p.valid = lambda self, skill, team, on_field: self.char.idx == skill.char.idx
-        self.buff_P.valid = lambda self, skill, team, on_field: self.char.idx == skill.char.idx
-        self.buff_c6.valid = lambda self, skill, team, on_field: self.char.idx == skill.char.idx
+        self.buff_p.valid = lambda skill, team, on_field: self.buff_p.char.idx == skill.char.idx
+        self.buff_P.valid = lambda skill, team, on_field: self.buff_P.char.idx == skill.char.idx
+        self.buff_c6.valid = lambda skill, team, on_field: self.buff_c6.char.idx == skill.char.idx
 
         self.skills = {"a": self.skill_a,
                        "A": self.skill_A,
@@ -90,7 +90,9 @@ class Ayaka(Character):
                        "q": self.skill_q}
 
         self.buffs = {"p": self.buff_p,
-                      "P": self.buff_P}
+                      "P": self.buff_P,
+                      "infusion": self.infusion,
+                      "附魔": self.infusion}
 
         self.constellation_effect()
 

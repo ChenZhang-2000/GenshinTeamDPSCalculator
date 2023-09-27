@@ -42,5 +42,5 @@ class BlizzardStrayer(Artifact):
                                                          20., 0.]])),
                                 'permanent'))
 
-        self.four_effect.append((BlizzardStrayerFour(self), 'partial'))
+        self.four_effect.append((BlizzardStrayerFour(char), 'partial'))
 

@@ -6,7 +6,7 @@ import torch
 from torch.nn.functional import one_hot
 
 from GTDC.common.characters.base_char import Character
-from GTDC.common.stats import BasicBuff, ProportionalBuff, Stats, Debuff, DamageStats
+from GTDC.common.stats import BasicBuff, ProportionalBuff, Stats, Debuff, DamageStats, ReactionBuff
 from GTDC.common.exception import InvalidSkillTime
 
 
@@ -212,6 +212,7 @@ class Model:
             basic_buffs_mask = list(map(lambda y: isinstance(y, BasicBuff), self.buffs_data['buff']))
             proportional_buffs_mask = list(map(lambda y: isinstance(y, ProportionalBuff), self.buffs_data['buff']))
             de_buffs_mask = list(map(lambda y: isinstance(y, Debuff), self.buffs_data['buff']))
+            reaction_buffs_mask = list(map(lambda y: isinstance(y, ReactionBuff), self.buffs_data['buff']))
 
             # create mask for buffs and infusions based on time of the skills
             # print(self.buffs_mat)
@@ -246,7 +247,9 @@ class Model:
                 buffs = (list(self.buffs_data['buff'][(valid_buff_mask*basic_buffs_mask).astype(bool)]),
                          list(self.buffs_data['buff'][(valid_buff_mask*proportional_buffs_mask).astype(bool)]),
                          # + self.team.permanent_prop_buffs[skill.char.idx],
-                         list(self.buffs_data['buff'][(valid_buff_mask*de_buffs_mask).astype(bool)]))
+                         list(self.buffs_data['buff'][(valid_buff_mask*de_buffs_mask).astype(bool)]),
+                         list(self.buffs_data['buff'][(valid_buff_mask*reaction_buffs_mask).astype(bool)]))
+
                 infusion = self.infusions_data['infusion'][valid_infusion_mask.astype(bool)]
 
                 # calculate damages

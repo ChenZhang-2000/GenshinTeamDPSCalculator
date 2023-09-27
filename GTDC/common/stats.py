@@ -236,6 +236,14 @@ class Stats:
         assert self.data.shape[0] == 1
         return self.data[:, 0] * (1 + self.data[:, 2]/100) + self.data[:, 1]
 
+    def defence(self):
+        assert self.data.shape[0] == 1
+        return self.data[:, 3] * (1 + self.data[:, 5]/100) + self.data[:, 4]
+
+    def hp(self):
+        assert self.data.shape[0] == 1
+        return self.data[:, 6] * (1 + self.data[:, 8]/100) + self.data[:, 7]
+
     def additional(self):
         assert self.data.shape[0] == 1
         return self.data[:, 32]
@@ -462,7 +470,7 @@ class Skills:
         for debuff in debuffs:
             enemy.change_stats(debuff)
 
-    def damage(self, team, enemy, buffs: ([], [], []), reactions, ds, t, on_field_idx, infusions=None):
+    def damage(self, team, enemy, buffs: ([], [], [], []), reactions, ds, t, on_field_idx, infusions=None):
         """
         team: team object
         enemy: enemy object
@@ -527,6 +535,9 @@ class Skills:
         stats = team.get_stats(c_idx)
 
         for reaction in reactions:
+            for buff in buffs[3]:
+                buff.buff_reaction(reaction, team, stats, enemy)
+
             if isinstance(reaction, Amplifying):
                 reaction_factor = reaction.react(team, self, stats, enemy)
 
@@ -642,4 +653,26 @@ class PolySkills:
             pass
         else:
             self.strike = int(strike)
+
+
+def reaction_buff_check(method):
+    def check(buff, reaction, team, stats, enemy):
+        if not (reaction.__class__ in buff.valid_reactions):
+            return
+        else:
+            return method(buff, reaction, team, stats, enemy)
+
+    return check
+
+
+class ReactionBuff:
+    def __init__(self, char, valid_reactions):
+        self.char = char
+        self.valid_reactions = valid_reactions
+
+    @reaction_buff_check
+    def buff_reaction(self, reaction, team, stats, enemy):
+        pass
+
+
 

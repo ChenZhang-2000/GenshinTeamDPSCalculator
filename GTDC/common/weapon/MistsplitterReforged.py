@@ -8,7 +8,7 @@ from GTDC.common.stats import Stats, Buff, BasicBuff, ProportionalBuff, Skills, 
 
 class MistsplitterReforgedElementalDB(BasicBuff):
     def __init__(self, char):
-        element = self.char.element
+        element = char.element
         self.element_idx = ELEMENT_IDX_MAP[element] * 2 + 15
         super().__init__(char=char,
                          array=torch.tensor([[0., 0., 0.,
@@ -59,4 +59,4 @@ class MistsplitterReforged(Weapon):
                                                    0., 0.,
                                                    0., 0.]])))
 
-        self.skills.append(Skills(self.char, 15 + self.affix * 5, "other", "physical"))
+        self.buffs.append(MistsplitterReforgedElementalDB(self.char))

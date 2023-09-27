@@ -177,16 +177,15 @@ def value_parsing(char, values, mode):
     else:
         raise ValueError(f"Invalid mode {mode}")
     # print(value)
-    pattern = r"([a-zA-z0-9\u4e00-\u9fff]{1,})(?:{{0,1})([a-zA-z0-9\u4e00-\u9fff]{0,})(?:}{0,1})(?:\({0,1})([a-zA-z0-9\u4e00-\u9fff\,\{\}]{0,})(?:\){0,1})"
+    pattern = r"([a-zA-z0-9\u4e00-\u9fff]{1,})(?:{{0,1})([a-zA-z0-9\u4e00-\u9fff\,]{0,})(?:}{0,1})(?:\({0,1})([a-zA-z0-9\u4e00-\u9fff\,\{\}]{0,})(?:\){0,1})"
 
-    # print(values)
     # print(values.split())
 
     for value in values.split():
         value = value.replace("（", "(").replace("）", ")").replace("，", ",")
+        # print(value)
         groups = re.match(pattern, value).groups()
         name, params, reaction_aliases = groups
-        # print(groups)
         # print(REACTION_FACTORY)
 
         reaction_aliases = reaction_aliases.split(',')
@@ -196,6 +195,7 @@ def value_parsing(char, values, mode):
         reactions = [] if reaction_names[0] is None else [REACTION_FACTORY[reaction_name]() for reaction_name in reaction_names]
 
         params = [i.strip() for i in params.split(',')]
+        # print(params)
         if name in config.skill_map.keys():
             if config.skill_map[name] == 'weapon':
                 target = char.weapon
@@ -214,18 +214,24 @@ def value_parsing(char, values, mode):
             if len(params) == 1 and params[0] == '':
                 objects.append((target[0], reactions))
             else:
+                # print(len(params))
+                # print(value)
                 arg, kwarg = expand_params(params[1:])
+                # print(arg, kwarg)
+                # print(name)
                 obj = target[int(params[0])]
                 obj.update(*arg, **kwarg)
                 objects.append((obj, reactions))
 
         else:
+            # print(name)
             arg, kwarg = expand_params(params)
             # if value == "附魔":
             #     print(d[name])
             obj = d[name]
             obj.update(*arg, **kwarg)
             objects.append((obj, reactions))
+    # print()
     return objects
 
 

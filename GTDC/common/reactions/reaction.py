@@ -89,10 +89,40 @@ class Blooming(Reaction):
     def react(self, team, skill, stats, enemy, *args, **kwargs):
         dmg = torch.Tensor([0.])
 
-        for dendro_core in team.dendro_cores:
-            dmg += dendro_core.react(team, skill, stats, enemy)
+        other_cores = []
 
-        team.dendro_cores = []
+        for dendro_core in team.dendro_cores:
+            if type(dendro_core) == DendroCore:
+                dmg += dendro_core.react(team, skill, stats, enemy)
+            else:
+                other_cores.append(dendro_core)
+
+        team.dendro_cores = other_cores
+
+        return dmg
+
+
+class DendroCore(Blooming):
+    def __init__(self, t, char, duration, coef, increase=0.):
+        self.start_time = t
+        self.char = char
+        self.duration = duration
+        super(DendroCore, self).__init__(coef, increase)
+
+    def react(self, team, skill, stats, enemy, *args, **kwargs):
+        em = stats[0, 9]
+        bonus = 16. * em / (em + 2000)
+
+        resistance = enemy["dendro"]
+
+        if resistance < 0:
+            resistance = 1 - resistance/200
+        elif resistance > 75:
+            resistance = 1 / (1 + 4 * resistance/100)
+        else:
+            resistance = 1 - resistance/100
+
+        dmg = CHAR_LEVEL_COEF[int(skill.char.level)-1] * self.coef * (1 + bonus + self.increase) * resistance
 
         return dmg
 
